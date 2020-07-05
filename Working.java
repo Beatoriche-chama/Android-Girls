@@ -2,16 +2,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.function.Consumer;
 
+//здесь девочки собирают цветы и мусор
 public class Working {
-    //здесь девочки собирают цветы и мусор
+    String[] flower_girls = {"Рика", "Сатоко", "Ханю"};
+    String[] garbager = {"Алиса", "Элли"};
+    List<Integer> flowers = new ArrayList<>();
+    List<Integer> garbage = new ArrayList<>();
+
     public static void main(String[] args) {
+        Working w = new Working();
 
     }
 
     public Working() {
-        flowerPicker((flowers) -> System.out.println("Девочки собрали: " + sum(flowers) + " цветочков."));
+        Timer timer = new Timer();
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                flowerPicker(flower_girls);
+                garbagePicker(garbager);
+            }
+        };
+        timer.schedule(task, 0, 5000);
+
     }
 
     public int sum(List<Integer> list) {
@@ -22,34 +36,19 @@ public class Working {
     }
 
 
-    public void flowerPicker(Consumer<List<Integer>> callback) {
-        String[] flower_picker = {"Рика", "Сатоко", "Ханю"};
-        Timer timer = new Timer();
-        List<Integer> flowers = new ArrayList<>();
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run() {
-                int flower_picked = 1 * flower_picker.length;
-                flowers.add(flower_picked);
-                callback.accept(flowers);
-            }
-        };
-        timer.schedule(task, 0, 5000);
+    public int flowerPicker(String[] flower_picker) {
+
+        int flower_picked = 1 * flower_picker.length;
+        flowers.add(flower_picked);
+        return sum(flowers);
     }
 
-    public void garbagePicker(Consumer<Integer> callback1) {
-        String[] garbager = {"Алиса", "Элли"};
-        Timer timer = new Timer();
-        List<Integer> garbage = new ArrayList<>();
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run() {
-                int garbage_picked = 1 * garbager.length;
-                garbage.add(garbage_picked);
-                int sum_garbage = sum(garbage);
-                callback1.accept(sum_garbage);
-            }
-        };
-        timer.schedule(task, 0, 5000);
+    public int garbagePicker(String[] garbage_picker) {
+
+        int garbage_picked = 1 * garbage_picker.length;
+        garbage.add(garbage_picked);
+        System.out.println(sum(garbage));
+        return sum(garbage);
     }
+
 }
