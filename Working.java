@@ -1,17 +1,14 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 //здесь девочки собирают цветы и мусор
 public class Working {
-    String[] flower_girls = {"Рика", "Сатоко", "Ханю"};
-    String[] garbager = {"Алиса", "Элли"};
+    List <String> flower_girls = Arrays.asList("Рика", "Сатоко", "Ханю");
+    List <String> garbager = Arrays.asList("Алиса", "Элли");
     List<Integer> flowers = new ArrayList<>();
     List<Integer> garbage = new ArrayList<>();
 
     public static void main(String[] args) {
-        Working w = new Working();
+
 
     }
 
@@ -36,18 +33,18 @@ public class Working {
     }
 
 
-    public int flowerPicker(String[] flower_picker) {
+    public int flowerPicker(List<String> flower_picker) {
 
-        int flower_picked = 1 * flower_picker.length;
+        int flower_picked = 1 * flower_picker.size();
         flowers.add(flower_picked);
+        System.out.println("Цветов: " + sum(flowers));
         return sum(flowers);
     }
 
-    public int garbagePicker(String[] garbage_picker) {
+    public int garbagePicker(List<String> garbage_picker) {
 
-        int garbage_picked = 1 * garbage_picker.length;
+        int garbage_picked = 1 * garbage_picker.size();
         garbage.add(garbage_picked);
-        System.out.println(sum(garbage));
         return sum(garbage);
     }
 
