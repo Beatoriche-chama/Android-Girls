@@ -31,7 +31,7 @@ public class Processing{
         int now_flowers = flower_sum - fuel;
         System.out.println("Алхимики расходовали " + flower_sum + " цветочков и их осталось " +
                 now_flowers);
-        w.flowers.clear();
+        w.flowers = new ArrayList<>();
         w.flowers.add(now_flowers);
         System.out.println("Алхимики сделали топлива: " + w.sum(fuel_tanks));
         return w.sum(fuel_tanks);
@@ -44,7 +44,7 @@ public class Processing{
         int now_garbage = garbage_sum - details;
         System.out.println("Механики переработали " + garbage_sum + " мусора и их осталось " +
                 now_garbage);
-        w.garbage.clear();
+        w.garbage = new ArrayList<>();
         w.garbage.add(now_garbage);
         System.out.println("Механики изготовили деталек: " + w.sum(details_stack));
         return w.sum(details_stack);
