@@ -1,9 +1,8 @@
 import java.util.*;
 
-//здесь девочки собирают цветы и мусор
 public class Working {
-    List <String> flower_girls = Arrays.asList("Anna", "Nina", "Alice");
-    List <String> garbager = Arrays.asList("Rika", "Elly");
+    //здесь девочки собирают цветы и мусор
+    GirlsList girlsList = new GirlsList();
     List<Integer> flowers = new ArrayList<>();
     List<Integer> garbage = new ArrayList<>();
 
@@ -16,8 +15,8 @@ public class Working {
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
-                flowerPicker(flower_girls);
-                garbagePicker(garbager);
+                flowerPicker(girlsList.flower_girls);
+                garbagePicker(girlsList.garbagers);
             }
         };
         timer.schedule(task, 0, 5000);
