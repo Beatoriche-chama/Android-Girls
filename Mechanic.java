@@ -17,7 +17,7 @@ public class Mechanic {
             System.out.println("Мало цветов");
         }
         else {
-            details += (garbage_sum / girlsList.garbagers.size()) * girlsList.mechanic.size();
+            details += 1 * girlsList.mechanic.size();
             int now_garbage = garbage_sum - details;
             fileManage.fileSave("garbage_count", now_garbage);
             fileManage.fileSave("details_count", details);
