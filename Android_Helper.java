@@ -7,13 +7,6 @@ public class Android_Helper {
 
     }
 
-    public int sum(List<Integer> list) {
-        int sum = 0;
-        for (int i : list)
-            sum = sum + i;
-        return sum;
-    }
-
     public String giveMeName(){
         String [] names = {"Лили", "Ханако", "Рин", "Эми", "Шизуне", "Миша"};
         int idx = new Random().nextInt(names.length);
