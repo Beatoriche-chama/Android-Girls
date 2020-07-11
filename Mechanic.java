@@ -1,25 +1,28 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.io.IOException;
 
 public class Mechanic {
     //здесь механики изготавливают детали
     GirlsList girlsList = new GirlsList();
-    List<Integer> details_stack = new ArrayList<>();
-    Pick_Garbage pick_garbage = new Pick_Garbage();
-    Android_Helper android_helper = new Android_Helper();
+    FileManage fileManage = new FileManage();
 
-    public int mechanicDetails (){
-        int garbage_sum = android_helper.sum(pick_garbage.garbage);
-        int details = (garbage_sum / girlsList.garbagers.size()) * girlsList.mechanic.size();
-        details_stack.add(details);
-        int now_garbage = garbage_sum - details;
-        System.out.println("Механики переработали " + garbage_sum + " мусора и их осталось " +
-                now_garbage);
-        pick_garbage.garbage = new ArrayList<>();
-        pick_garbage.garbage.add(now_garbage);
-        return android_helper.sum(details_stack);
+    public int mechanicDetails () throws IOException {
+        int garbage_sum = fileManage.fileLoad("garbage_count");
+        int details = fileManage.fileLoad("details_count");
+        if (details > garbage_sum || garbage_sum < 1) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Мало цветов");
+        }
+        else {
+            details += (garbage_sum / girlsList.garbagers.size()) * girlsList.mechanic.size();
+            int now_garbage = garbage_sum - details;
+            fileManage.fileSave("garbage_count", now_garbage);
+            fileManage.fileSave("details_count", details);
+        }
+        return details;
     }
 
 }
