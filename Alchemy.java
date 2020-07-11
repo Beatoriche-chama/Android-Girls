@@ -1,44 +1,33 @@
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
 
-public class Alchemy{
+public class Alchemy {
 
     GirlsList girlsList = new GirlsList();
-    List<Integer> fuel_tanks = new ArrayList<>();
-    Android_Helper android_helper = new Android_Helper();
+    FileManage fileManage = new FileManage();
 
     public static void main(String[] args) {
 
     }
 
-    public int alchemyFuel(){
-        //считывает с файла Лист собранных листов и переписывает его с новой суммой
-        String flower_sum_string = null;
-        try {
-            flower_sum_string = new String(Files.readAllBytes(Paths.get("flower_count.txt")));
-        } catch (IOException e) {
-            e.printStackTrace();
+    public int alchemyFuel() throws IOException {
+        int flower_sum = fileManage.fileLoad("flower_count");
+        int fuel = fileManage.fileLoad("fuel_count");
+        if (fuel > flower_sum || flower_sum < 1) {
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Мало цветов");
         }
-        int flower_sum = Integer.parseInt(flower_sum_string);
-        int fuel = (flower_sum / girlsList.flower_girls.size()) * girlsList.alchemy_girls.size();
-        fuel_tanks.add(fuel);
-        int now_flowers = flower_sum - fuel;
-
-        try {
-            FileWriter rewriter = new FileWriter("flower_count.txt", false);
-            rewriter.write(Integer.toString(now_flowers));
-            rewriter.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
+        else {
+            fuel += 1 * girlsList.alchemy_girls.size();
+            int now_flowers = flower_sum - fuel;
+            fileManage.fileSave("flower_count", now_flowers);
+            fileManage.fileSave("fuel_count", fuel);
+            System.out.println("После топлива сумма цветов: " + now_flowers);
         }
-        return android_helper.sum(fuel_tanks);
+        return fuel;
     }
 
 }
-
-
