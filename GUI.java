@@ -1,12 +1,6 @@
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.File;
 import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class GUI extends JFrame {
     GirlsList girlsList = new GirlsList();
@@ -104,21 +98,42 @@ public class GUI extends JFrame {
         pick_garbage.setBounds(600, 180, 145, 60);
 
         TimerWrapper pick_old_staff = new TimerWrapper(garbage_count, 5_000);
-        pick_garbage.addActionListener(k -> pick_old_staff.run(()-> g.garbagePicker(), " собрано мусора (*¯︶¯*)"));
+        pick_garbage.addActionListener(k -> pick_old_staff.run(()-> {
+            try {
+                return g.garbagePicker();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }, " собрано мусора (*¯︶¯*)"));
 
         JButton make_fuel = new JButton("Экстрактить топливо");
         panel.add(make_fuel);
         make_fuel.setBounds(600, 250, 160, 60);
 
         TimerWrapper making_fuel = new TimerWrapper(fuel_count, 15_000);
-        make_fuel.addActionListener(v -> making_fuel.run(()-> a.alchemyFuel(), " топлива выделено (≧◡≦)"));
+        make_fuel.addActionListener(v -> making_fuel.run(()-> {
+            try {
+                return a.alchemyFuel();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }, " топлива выделено (≧◡≦)"));
 
         JButton make_details = new JButton("Выплавить детальки");
         panel.add(make_details);
         make_details.setBounds(600, 320, 170, 60);
 
         TimerWrapper making_details = new TimerWrapper(fuel_count, 15_000);
-        make_details.addActionListener(v -> making_details.run(()-> m.mechanicDetails(), " деталек изготовлено <(￣︶￣)>"));
+        make_details.addActionListener(v -> making_details.run(()-> {
+            try {
+                return m.mechanicDetails();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }, " деталек изготовлено <(￣︶￣)>"));
 
         frame.setVisible(true);
     }
