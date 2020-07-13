@@ -1,17 +1,20 @@
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class GUI extends JFrame {
-    GirlsList girlsList = new GirlsList();
     private static final long serialVersionUID = -1267352938435573633L;
     Pick_Flowers p = new Pick_Flowers();
     Pick_Garbage g = new Pick_Garbage();
     Alchemy a = new Alchemy();
     Mechanic m = new Mechanic();
+    FileManage fileManage = new FileManage();
+    EnergyGenerator energyGenerator = new EnergyGenerator();
 
     public static void main(String args[]) {
-        new GUI();
+        GUI gui = new GUI();
     }
 
 
@@ -29,6 +32,12 @@ public class GUI extends JFrame {
                 " механического тела, собирайте вместе новых робо-девочек и стремитесь" +
                 " к робораю. ALL HAIL TECHNOCRACY!!");
 
+        try {
+            fileManage.fileCreate("girls_count");
+            fileManage.fileSave("girls_count", 1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         Android_Helper android_helper = new Android_Helper();
         ImageIcon image = new ImageIcon("C:/Users/User/Downloads/Android_girls/src/image" +
@@ -42,6 +51,12 @@ public class GUI extends JFrame {
         panel.add(name);
         Dimension name_size = name.getPreferredSize();
         name.setBounds(350, 90, name_size.width, name_size.height);
+        try {
+            fileManage.fileCreate("all_girls");
+            fileManage.girlSave("all_girls", name.getText());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         JButton job = new JButton("Менеджер");
         panel.add(job);
@@ -49,8 +64,9 @@ public class GUI extends JFrame {
         job.setBounds(350, 110, job_size.width, job_size.height);
 
         job.addActionListener(n -> {
-            JList<String> displayList = new JList<>(girlsList.all_girls.toArray(new String[0]));
+            JList displayList = new JList<>(fileManage.girlsLoad("all_girls").toArray(new String[0]));
             JScrollPane scrollPane = new JScrollPane(displayList);
+            scrollPane.createVerticalScrollBar();
             getContentPane().add(scrollPane);
             pack();
             setVisible(true);
@@ -81,7 +97,7 @@ public class GUI extends JFrame {
         pick_flower.setBounds(600, 110, 130, 60);
 
         TimerWrapper pick_flowers = new TimerWrapper(flower_count, 5_000);
-        pick_flower.addActionListener(v -> pick_flowers.run(()-> {
+        pick_flower.addActionListener(v -> pick_flowers.run(() -> {
             try {
                 return p.flowerPicker();
             } catch (IOException e) {
@@ -98,7 +114,7 @@ public class GUI extends JFrame {
         pick_garbage.setBounds(600, 180, 145, 60);
 
         TimerWrapper pick_old_staff = new TimerWrapper(garbage_count, 5_000);
-        pick_garbage.addActionListener(k -> pick_old_staff.run(()-> {
+        pick_garbage.addActionListener(k -> pick_old_staff.run(() -> {
             try {
                 return g.garbagePicker();
             } catch (IOException e) {
@@ -112,7 +128,7 @@ public class GUI extends JFrame {
         make_fuel.setBounds(600, 250, 160, 60);
 
         TimerWrapper making_fuel = new TimerWrapper(fuel_count, 15_000);
-        make_fuel.addActionListener(v -> making_fuel.run(()-> {
+        make_fuel.addActionListener(v -> making_fuel.run(() -> {
             try {
                 return a.alchemyFuel();
             } catch (IOException e) {
@@ -126,7 +142,7 @@ public class GUI extends JFrame {
         make_details.setBounds(600, 320, 170, 60);
 
         TimerWrapper making_details = new TimerWrapper(fuel_count, 15_000);
-        make_details.addActionListener(v -> making_details.run(()-> {
+        make_details.addActionListener(v -> making_details.run(() -> {
             try {
                 return m.mechanicDetails();
             } catch (IOException e) {
@@ -135,7 +151,66 @@ public class GUI extends JFrame {
             return null;
         }, " деталек изготовлено <(￣︶￣)>"));
 
+        JOptionPane.showMessageDialog(GUI.this, "Девочки-андроиды выключатся, " +
+                "если запас энергии будет на нуле. Соберите достаточно деталек, чтобы починить ветряной генератор. " +
+                "Пока что энергии есть некоторое количество, но поторопитесь, из-за поломки она сейчас " +
+                "не пополняется.");
+        //ЗДЕСЬ ИГРА СТАРТУЕТ
+        JLabel energy_count = new JLabel();
+        panel.add(energy_count);
+        Dimension energy_count_size = flower_count.getPreferredSize();
+        energy_count.setBounds(930, 125, 200, energy_count_size.height);
+
+        fileManage.fileCreate("energy_count");
+        try {
+            fileManage.fileSave("energy_count", 15);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        TimerWrapper energy = new TimerWrapper(energy_count, 10000);
+        energy.runLimited(() -> {
+            try {
+                return energyGenerator.eatEnergy();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }, " энергии сейчас (´-ω-`)");
+
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    System.out.println("Проверяю, что не ноль.");
+                    if (fileManage.fileLoad("energy_count") < 1) {
+                        timer.cancel();
+                        System.out.println("Конец.");
+                        UIManager.put("OptionPane.yesButtonText", "Помочь мечте андроидов сбыться в новой реальности");
+                        UIManager.put("OptionPane.noButtonText", "Оставить этот умирающий мир");
+                        int result = JOptionPane.showConfirmDialog(GUI.this,
+                                "Няша, твоя рабыня навеки застыла без энергии." +
+                                        " Сейчас ее программное обеспечение связи с параллельным миром отключится.",
+                                "Конец реальности", JOptionPane.YES_NO_OPTION);
+                        if (result == JOptionPane.YES_OPTION) {
+                            //restart();
+                            //счетчик обновляется, создаются новые файлы андроида и энергии
+                        }
+                        if (result == JOptionPane.NO_OPTION) {
+                            System.exit(0);
+                        }
+
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }, 0, 5000);
+        //ЗДЕСЬ ЗАКАНЧИВАЕТСЯ
+
         frame.setVisible(true);
     }
+
 
 }
