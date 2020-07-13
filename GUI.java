@@ -1,5 +1,7 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -12,23 +14,32 @@ public class GUI extends JFrame {
     Mechanic m = new Mechanic();
     FileManage fileManage = new FileManage();
     EnergyGenerator energyGenerator = new EnergyGenerator();
-    JPanel panel = new JPanel();
     Android_Helper android_helper = new Android_Helper();
     JLabel name = new JLabel();
     JLabel energy_count = new JLabel("15 энергии сейчас");
+    JFrame frame = new JFrame("Android Girls");
+    ImageIcon icon1 = new ImageIcon("C:/Users/User/Downloads/Android_girls/src/button.jpg");
+    Image image = ImageIO.read(new File("C:/Users/User/Downloads/Android_girls/src/background.jpg"));
+    JPanel panel = new JPanel() {
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            g.drawImage(image, 0, 0, frame.getWidth(), frame.getHeight(), this);
+        }
+    };
 
-    public static void main(String args[]) {
+    public static void main(String args[]) throws IOException {
         new GUI();
     }
 
 
-    public GUI() {
-        JFrame frame = new JFrame("Android Girls");
+    public GUI() throws IOException {
+
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.setVisible(true);
-        panel.setLayout(null);
         frame.add(panel);
+        panel.setLayout(null);
 
         JOptionPane.showMessageDialog(GUI.this, "Поздравляю, хозяин!" +
                 " Теперь, у тебя есть личная робо-девочка, заботься о состоянии ее" +
@@ -40,25 +51,20 @@ public class GUI extends JFrame {
 
         JLabel flower_count = new JLabel("0 цветов");
         panel.add(flower_count);
-        Dimension flower_count_size = flower_count.getPreferredSize();
-        flower_count.setBounds(800, 125, 200, flower_count_size.height);
+        flower_count.setBounds(800, 110, 200, 60);
 
         JLabel garbage_count = new JLabel("0 мусора");
         panel.add(garbage_count);
-        Dimension garbage_count_size = garbage_count.getPreferredSize();
-        garbage_count.setBounds(800, 200, 200, garbage_count_size.height);
+        garbage_count.setBounds(800, 180, 200, 60);
 
         JLabel fuel_count = new JLabel("0 топлива");
         panel.add(fuel_count);
-        Dimension fuel_count_size = fuel_count.getPreferredSize();
-        fuel_count.setBounds(800, 275, 200, fuel_count_size.height);
+        fuel_count.setBounds(800, 250, 200, 60);
 
         JLabel details_count = new JLabel("0 деталек");
         panel.add(details_count);
-        Dimension details_count_size = details_count.getPreferredSize();
-        details_count.setBounds(800, 350, 200, details_count_size.height);
+        details_count.setBounds(800, 330, 200, 60);
 
-        ImageIcon icon1 = new ImageIcon("C:/Users/User/Downloads/Android_girls/src/button.jpg");
         JButton pick_flower = new JButton("Pick flowers", icon1);
         pick_flower.setFont(new Font("Century Schoolbook", Font.BOLD, 16));
         pick_flower.setHorizontalTextPosition(SwingConstants.CENTER);
@@ -128,7 +134,7 @@ public class GUI extends JFrame {
                 "Пока что энергии есть некоторое количество, но поторопитесь, из-за поломки она сейчас " +
                 "не пополняется.");
 
-        frame.setVisible(true);
+        panel.setVisible(true);
     }
 
     public void start() {
@@ -158,10 +164,11 @@ public class GUI extends JFrame {
             e.printStackTrace();
         }
 
-        JButton job = new JButton("Менеджер");
+        JButton job = new JButton("Менеджер", icon1);
+        job.setFont(new Font("Century Schoolbook", Font.BOLD, 15));
+        job.setHorizontalTextPosition(SwingConstants.CENTER);
         panel.add(job);
-        Dimension job_size = job.getPreferredSize();
-        job.setBounds(350, 110, job_size.width, job_size.height);
+        job.setBounds(350, 110, 140, 30);
 
         job.addActionListener(n -> {
             JList displayList = new JList<>(fileManage.girlsLoad("all_girls").toArray(new String[0]));
