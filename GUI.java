@@ -139,8 +139,15 @@ public class GUI extends JFrame {
 
     public void start() {
         try {
-            fileManage.fileCreate("girls_count");
-            fileManage.fileSave("girls_count", 1);
+            fileManage.fileCreate("free_girls_count");
+            fileManage.fileCreate("all_girls_count");
+            fileManage.fileCreate("garbagers_girls_count");
+            fileManage.fileCreate("mechanic_girls_count");
+            fileManage.fileSave("all_girls_count", 1);
+            fileManage.fileSave("garbagers_girls_count", 0);
+            fileManage.fileSave("mechanic_girls_count", 0);
+            fileManage.fileSave("free_girls_count", 1);
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -158,8 +165,8 @@ public class GUI extends JFrame {
         Dimension name_size = name.getPreferredSize();
         name.setBounds(350, 90, name_size.width, name_size.height);
         try {
-            fileManage.fileCreate("all_girls");
-            fileManage.girlSave("all_girls", name.getText());
+            fileManage.fileCreate("free_girls_names");
+            fileManage.girlSave("free_girls_names", name.getText());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -171,12 +178,8 @@ public class GUI extends JFrame {
         job.setBounds(350, 110, 140, 30);
 
         job.addActionListener(n -> {
-            JList displayList = new JList<>(fileManage.girlsLoad("all_girls").toArray(new String[0]));
-            JScrollPane scrollPane = new JScrollPane(displayList);
-            scrollPane.createVerticalScrollBar();
-            getContentPane().add(scrollPane);
-            pack();
-            setVisible(true);
+            ManagementMenu managementMenu = new ManagementMenu();
+            managementMenu.createManageMenu();
         });
 
 
@@ -186,7 +189,7 @@ public class GUI extends JFrame {
 
         fileManage.fileCreate("energy_count");
         try {
-            fileManage.fileSave("energy_count", 15);
+            fileManage.fileSave("energy_count", 100);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -201,6 +204,11 @@ public class GUI extends JFrame {
             return null;
         }, " энергии сейчас (´-ω-`)");
 
+    }
+
+    public void restart(){
+        //при рестарте создаются некоторые новые файлы
+        //а при старте файлы только загружаются
     }
 
     public void timerCheck() {
@@ -246,4 +254,11 @@ public class GUI extends JFrame {
 
         }
     }
+
+    public void nulifyAll(){
+        //здесь обнуляются: имя менеджера, ее иконка,
+        //счетчик электричества
+        //создаются пустые именные файлы и их счетные файлы равны нулю
+    }
+
 }
