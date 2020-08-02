@@ -1,32 +1,43 @@
-import java.io.IOException;
-
 public class EnergyGenerator {
-    FileManage fileManage = new FileManage();
+    GirlsLists girlsLists = GirlsLists.getInstance();
+    Alchemy alchemy = Alchemy.getInstance();
+    private int energy;
 
-    public void giveEnergy() throws IOException {
+    private EnergyGenerator(){
+
+    }
+
+    public static EnergyGenerator getInstance(){
+        return EnergyGeneratorHolder.energyGeneratorInstance;
+    }
+
+    private static class EnergyGeneratorHolder{
+        private static final EnergyGenerator energyGeneratorInstance = new EnergyGenerator();
+    }
+
+    public int giveEnergy() {
         //если не сломан
-        int energy = 5 + fileManage.fileLoad("C:/Users/User/Documents/NyanData/energy_count");
-        fileManage.fileSave("C:/Users/User/Documents/NyanData/energy_count", energy);
+        return energy += 10;
     }
 
-    public void eatFuel() throws IOException {
+    public void eatFuel(){
         //для более мощных топливных генераторов
-        int sum_fuel = fileManage.fileLoad("C:/Users/User/Documents/NyanData/fuel_count");
-        int now_fuel = fileManage.fileLoad("C:/Users/User/Documents/NyanData/energy_count") - sum_fuel;
-        fileManage.fileSave("C:/Users/User/Documents/NyanData/fuel_count", now_fuel);
+        int sum_fuel = alchemy.getFuel();
+        alchemy.setFuel(energy - sum_fuel);
     }
 
-    public int eatEnergy() throws IOException {
-        //одна девочка раз в 10 секунд (прописано в GUI) ест 5 энергий!
-        int girls = fileManage.fileLoad("C:/Users/User/Documents/NyanData/all_girls_count");
+    public int eatEnergy() {
+        int girls = girlsLists.getAll_girls();
         System.out.println("Девочек сейчас ест " + girls);
-        int energy = fileManage.fileLoad("C:/Users/User/Documents/NyanData/energy_count");
-        System.out.println("Из файла взяли энергии " + energy);
-        int now_energy = energy - 5 * girls;
-        fileManage.fileSave("C:/Users/User/Documents/NyanData/energy_count", now_energy);
-        System.out.println("Девочка покушала. Осталось " + now_energy +
-                " энергии.");
-        return now_energy;
+        return energy -= 5 * girls;
+    }
+
+    public int getEnergy(){
+        return energy;
+    }
+
+    public void setEnergy(int x){
+        energy = x;
     }
 
 }
