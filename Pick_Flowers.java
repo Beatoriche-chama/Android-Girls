@@ -1,14 +1,31 @@
-import java.io.IOException;
+import java.util.ArrayList;
 
 public class Pick_Flowers {
-    FileManage fileManage = new FileManage();
 
-    public int flowerPicker() throws IOException {
-        int flower_picked = fileManage.fileLoad("C:/Users/User/Documents/NyanData/flower_count");
-        flower_picked += 1 * fileManage.fileLoad("C:/Users/User/Documents/NyanData/flower_girls_count");
-        System.out.println("Текущая сумма цветов: " + flower_picked);
-        fileManage.fileSave("flower_count", flower_picked);
-        return flower_picked;
+    private int flowers;
+    private Pick_Flowers() {
+
+    }
+
+    public int flowerPicker(ArrayList<NewAndroid> flower_picker){
+        int flowers_picked = flower_picker.size();
+        flowers += flowers_picked;
+        return flowers;
+    }
+    public static Pick_Flowers getInstance() {
+        return Pick_Flowers_Holder.flowersInstance;
+    }
+
+    private static class Pick_Flowers_Holder{
+        private static final Pick_Flowers flowersInstance = new Pick_Flowers();
+    }
+
+    public int getFlowers() {
+        return flowers;
+    }
+
+    public void setFlowers(int new_sum) {
+        flowers = new_sum;
     }
 
 }
