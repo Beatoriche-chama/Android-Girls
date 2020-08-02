@@ -1,5 +1,6 @@
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,21 +8,37 @@ import java.util.Scanner;
 
 public class FileManage {
 
-    public int fileLoad(String file_name) throws IOException {
-        int amount = 0;
+
+    public String fileLoad(String file_name, String category, int certainLine, boolean isNumber) throws IOException {
+        int counter = 0;
+        String data = null;
+        String line;
+        if(isNumber){
+            data = "0";
+        }
         if (Files.exists(Paths.get(file_name))) {
-            BufferedReader reader = new BufferedReader(new FileReader(file_name));
-            String sum = reader.readLine();
-            reader.close();
-            amount = Integer.parseInt(sum);
+            BufferedReader reader = Files.newBufferedReader(Paths.get(file_name));
+            try {
+                while ((line = reader.readLine()) != null) {
+                    counter++;
+                    if (counter == certainLine) {
+                        String[] new_line = line.split(category + "|;");
+                        data = new_line[1];
+                        reader.close();
+                        break;
+                    }
+                }
+
+            } catch (Exception e) {
+                System.out.println("Нужной строчки в файле нет!");
+            }
+        } else {
+            System.out.println("Нужного файла нет.");
         }
 
-        if (Files.notExists(Paths.get(file_name))) {
-            fileCreate(file_name);
-            fileSave(file_name, 0);
-        }
-        return amount;
+        return data;
     }
+
 
     public File fileCreate(String file_name) {
         File new_file = new File(file_name);
@@ -29,25 +46,42 @@ public class FileManage {
         return new_file;
     }
 
-    public void fileSave(String file_name, int sum) throws IOException {
-        FileWriter rewriter = new FileWriter(file_name, false);
-        rewriter.write(Integer.toString(sum));
+    public void fileSave(String file_name, String category, String data, int certainLine,
+                         boolean isNumber) throws IOException {
+        File temp = new File(file_name + "Temp");
+        Path sourceFilePath = Paths.get(temp.getAbsolutePath());
+        Path targetFilePath = Paths.get(file_name);
+        PrintWriter rewriter = new PrintWriter(Files.newBufferedWriter(sourceFilePath));
+        BufferedReader reader = Files.newBufferedReader(targetFilePath);
+        String line;
+        int counter = 0;
+        while ((line = reader.readLine()) != null || counter < certainLine) {
+            counter++;
+            if (counter == certainLine) {
+                if (isNumber) {
+                    line = category + Integer.parseInt(data) + ";";
+                } else {
+                    line = category + data + ";";
+                }
+            }
+            rewriter.println(line);
+        }
         rewriter.close();
+        reader.close();
+        System.out.println("Удаление с этой линией " + certainLine);
+        Files.delete(targetFilePath);
+        Files.move(sourceFilePath, targetFilePath);
     }
 
-    public void fileDelete(String file_name) throws IOException {
-        Files.deleteIfExists(Paths.get(file_name));
+    public void listSave(String file_name, ArrayList <String> list) throws IOException {
+        new File(file_name);
+        PrintWriter pw = new PrintWriter(Files.newBufferedWriter(Paths.get(file_name)));
+        for (String girls : list)
+            pw.println(girls);
+        pw.close();
     }
 
-    public void girlSave(String file_name, String girl_name) throws IOException {
-        FileWriter fileWriter = new FileWriter(file_name, true);
-        BufferedWriter rewriter = new BufferedWriter(fileWriter);
-        rewriter.write(girl_name);
-        rewriter.newLine();
-        rewriter.close();
-    }
-
-    public List<String> girlsLoad(String file_name) throws IOException {
+    public List<String> listLoad(String file_name) {
         List<String> list = null;
         if (Files.exists(Paths.get(file_name))) {
             Scanner s = null;
@@ -61,52 +95,18 @@ public class FileManage {
                 list.add(s.next());
             }
             s.close();
-
         }
-        if (Files.notExists(Paths.get(file_name))){
-            File file = new File(file_name);
-            file.createNewFile();
-        }
-            return list;
-    }
-
-    public void girlDelete(String file_name, String certain_name) throws IOException {
-        File file = new File(file_name);
-        BufferedReader reader = new BufferedReader(new FileReader(file));
-        FileWriter fileWriter = new FileWriter(file_name, false);
-        BufferedWriter rewriter = new BufferedWriter(fileWriter);
-
-        String lineToRemove = certain_name;
-        String currentLine;
-        int stop_indicator = 0;
-        while ((currentLine = reader.readLine()) != null) {
-            String trimmedLine = currentLine.trim();
-            if (trimmedLine.equals(lineToRemove) && stop_indicator < 1) {
-                stop_indicator = 1;
-                continue;
-            }
-            rewriter.write(currentLine + System.getProperty("line.separator"));
-        }
-        rewriter.close();
-        reader.close();
-    }
-
-    public String helperNameLoad (String file_name) throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader(file_name));
-        String name = reader.readLine();
-        reader.close();
-        return name;
+        return list;
     }
 
     public void deleteDirectory(File directory) {
-        if(directory.exists()){
+        if (directory.exists()) {
             File[] files = directory.listFiles();
-            if(null!=files){
-                for(int i=0; i<files.length; i++) {
-                    if(files[i].isDirectory()) {
+            if (null != files) {
+                for (int i = 0; i < files.length; i++) {
+                    if (files[i].isDirectory()) {
                         deleteDirectory(files[i]);
-                    }
-                    else {
+                    } else {
                         files[i].delete();
                     }
                 }
