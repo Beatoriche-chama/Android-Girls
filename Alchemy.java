@@ -1,11 +1,15 @@
-import java.io.IOException;
+import java.util.ArrayList;
 
 public class Alchemy {
-    FileManage fileManage = new FileManage();
+    private int fuel;
+    Pick_Flowers pick_flowers = Pick_Flowers.getInstance();
 
-    public int alchemyFuel() throws IOException {
-        int flower_sum = fileManage.fileLoad("C:/Users/User/Documents/NyanData/flower_count");
-        int fuel = fileManage.fileLoad("C:/Users/User/Documents/NyanData/fuel_count");
+    private Alchemy(){
+
+    }
+
+    public int alchemyFuel(ArrayList <NewAndroid> alchemy_gurlz) {
+        int flower_sum = pick_flowers.getFlowers();
         if (fuel > flower_sum || flower_sum < 1) {
             try {
                 Thread.sleep(5000);
@@ -15,15 +19,29 @@ public class Alchemy {
             System.out.println("Мало цветов");
         }
         else {
-            fuel += 1 * fileManage.fileLoad("C:/Users/User/Documents/NyanData/alchemy_girls_count");
-            int now_flowers = flower_sum - fuel;
-            fileManage.fileSave("C:/Users/User/Documents/NyanData/flower_count", now_flowers);
-            fileManage.fileSave("C:/Users/User/Documents/NyanData/fuel_count", fuel);
+            int new_fuel_tank = alchemy_gurlz.size();
+            fuel += new_fuel_tank;
+            int now_flowers = flower_sum - new_fuel_tank;
+            pick_flowers.setFlowers(now_flowers);
             System.out.println("После топлива сумма цветов: " + now_flowers);
         }
         return fuel;
     }
 
+    public static Alchemy getInstance() {
+        return Alchemy_Holder.alchemyInstance;
+    }
+
+    private static class Alchemy_Holder{
+        private static final Alchemy alchemyInstance = new Alchemy();
+    }
+
+    public int getFuel() {
+        return fuel;
+    }
+
+    public void setFuel(int new_sum) {
+        fuel = new_sum;
+    }
+
 }
-
-
