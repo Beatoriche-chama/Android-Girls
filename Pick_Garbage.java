@@ -1,13 +1,31 @@
-import java.io.IOException;
+import java.util.ArrayList;
 
 public class Pick_Garbage {
-    //здесь девочки собирают мусор
-    FileManage fileManage = new FileManage();
+    private int garbage;
 
-    public int garbagePicker() throws IOException {
-        int garbage_picked = fileManage.fileLoad("C:/Users/User/Documents/NyanData/garbage_count");
-        garbage_picked += 1 * fileManage.fileLoad("C:/Users/User/Documents/NyanData/garbagers_girls_count");
-        fileManage.fileSave("garbage_count", garbage_picked);
-        return garbage_picked;
+    private Pick_Garbage(){
+
+    }
+
+    public int garbagePicker(ArrayList <NewAndroid> garbage_picker) {
+        int garbage_picked = garbage_picker.size();
+        garbage += garbage_picked;
+        return garbage;
+    }
+
+    public static Pick_Garbage getInstance() {
+        return Pick_Garbage.Pick_Garbage_Holder.garbageInstance;
+    }
+
+    private static class Pick_Garbage_Holder{
+        private static final Pick_Garbage garbageInstance = new Pick_Garbage();
+    }
+
+    public int getGarbage() {
+        return garbage;
+    }
+
+    public void setGarbage(int new_sum) {
+        garbage = new_sum;
     }
 }
