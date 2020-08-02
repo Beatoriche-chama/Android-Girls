@@ -1,11 +1,6 @@
-
-import java.util.List;
 import java.util.Random;
 
 public class Android_Helper {
-    public static void main(String[] args) {
-
-    }
 
     public String giveMeName(){
         String [] names = {"Лили", "Ханако", "Рин", "Эми", "Шизуне", "Миша"};
@@ -14,7 +9,12 @@ public class Android_Helper {
         return random_name;
     }
 
-
+    public String giveMeInfo(){
+        String [] info = {"Любит петь", "Хочет спать весь день~", "Мечтает о звездах"};
+        int idx = new Random().nextInt(info.length);
+        String random_info = (info[idx]);
+        return random_info;
+    }
 
     public String giveMejob(){
         String [] jobs = {"Механик", "Собиратель запчастей", "Алхимик", "Собиратель цветочков", "Монахиня"};
