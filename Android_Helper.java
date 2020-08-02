@@ -16,13 +16,6 @@ public class Android_Helper {
         return random_info;
     }
 
-    public String giveMejob(){
-        String [] jobs = {"Механик", "Собиратель запчастей", "Алхимик", "Собиратель цветочков", "Монахиня"};
-        int idx = new Random().nextInt(jobs.length);
-        String random_job = (jobs[idx]);
-        return random_job;
-    }
-
     public int giveMeicon(){
         Random rand = new Random();
         int randomNum = rand.nextInt((5 - 1) + 1) + 1;
