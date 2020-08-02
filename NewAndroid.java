@@ -1,29 +1,54 @@
-import java.io.IOException;
-
 public class NewAndroid {
-    //здес делают новых андроидов-девочек
+    //здесь делают новых андроидов-девочек
+    private int iconId;
+    private String name, version, info;
     Android_Helper android_helper = new Android_Helper();
-    FileManage fileManage = new FileManage();
+    GirlsLists girlsLists = GirlsLists.getInstance();
+    Mechanic mechanic = Mechanic.getInstance();
 
-    public static void main(String[] args) {
-
+    public NewAndroid(){
+        this.iconId = android_helper.giveMeicon();
+        this.name = android_helper.giveMeName();
+        this.version = "n337";
+        this.info = android_helper.giveMeInfo();
+        makingNewGirl();
     }
 
-    public int makingNewGirl() throws IOException {
-        int girls_count = fileManage.fileLoad("C:/Users/User/Documents/NyanData/all_girls_count");
-        int details_sum = fileManage.fileLoad("C:/Users/User/Documents/NyanData/details_count");
+    public int getIconId(){
+        return iconId;
+    }
+
+    public String getName(){
+        return name;
+    }
+
+    public String getVersion(){
+        return version;
+    }
+
+    public String getInfo(){
+        return info;
+    }
+
+
+
+    private void upgradeGirl(){
+        //upgrade объект-девочку: версия меняется с n337 до более крутой
+        //версия добавляет бонус +10
+    }
+
+    public void makingNewGirl() {
+        int girls_count = girlsLists.getAll_girls();
+        int details_sum = mechanic.getDetails();
         int newGirl = 10;
         if (details_sum >= 10) {
             int now_details = details_sum - newGirl;
-            fileManage.fileSave("C:/Users/User/Documents/NyanData/details_count", now_details);
-            String girl = android_helper.giveMeName();
-            System.out.println("Появилась новая девочка~, ее зовут " + girl);
-            fileManage.girlSave("C:/Users/User/Documents/NyanData/free_girls_names", girl);
+            mechanic.setDetails(now_details);
             girls_count += girls_count;
-            fileManage.fileSave("C:/Users/User/Documents/NyanData/all_girls_count", girls_count);
+            girlsLists.setAll_girls(girls_count);
         } else {
             System.out.println("Не хватает деталек");
         }
-        return girls_count;
+
     }
 }
