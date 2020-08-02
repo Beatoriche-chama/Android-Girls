@@ -1,27 +1,32 @@
+import javax.swing.*;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.function.Supplier;
-import javax.swing.JLabel;
 
 public class TimerWrapper {
 
     private final long period;
-    private final JLabel label;
+    private final JLabel item;
     private boolean isActivated;
 
-    public TimerWrapper(JLabel label, long period) {
+    public TimerWrapper(JLabel item, long period) {
         this.isActivated = false;
-        this.label = label;
+        this.item = item;
         this.period = period;
     }
 
-    public void run(Supplier<Integer> supplier, String cute) {
+    public void run(Supplier<Integer> supplier, String cute, boolean isLimited) {
         if (isActivated) return;
         isActivated = true;
-        new Timer().schedule(new TimerTask() {
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                label.setText(supplier.get() + cute);
+                int x = supplier.get();
+                item.setText(x + cute);
+                if(isLimited && x < 1){
+                    timer.cancel();
+                }
             }
         }, 0, period);
     }
