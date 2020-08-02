@@ -1,12 +1,16 @@
-import java.io.IOException;
+import java.util.ArrayList;
 
 public class Mechanic {
-    FileManage fileManage = new FileManage();
+    private int details;
+    Pick_Garbage pick_garbage = Pick_Garbage.getInstance();
 
-    public int mechanicDetails () throws IOException {
-        int garbage_sum = fileManage.fileLoad("C:/Users/User/Documents/NyanData/garbage_count");
-        int details = fileManage.fileLoad("C:/Users/User/Documents/NyanData/details_count");
-        if (details > garbage_sum || garbage_sum < 1) {
+    private Mechanic(){
+
+    }
+
+    public int mechanicDetails (ArrayList <NewAndroid> mechanic_gurlz){
+        int garbage_sum = pick_garbage.getGarbage();
+        if (garbage_sum < 1) {
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
@@ -15,12 +19,28 @@ public class Mechanic {
             System.out.println("Мало мусора");
         }
         else {
-            details += 1 * fileManage.fileLoad("C:/Users/User/Documents/NyanData/mechanic_girls_count");
-            int now_garbage = garbage_sum - details;
-            fileManage.fileSave("C:/Users/User/Documents/NyanData/garbage_count", now_garbage);
-            fileManage.fileSave("C:/Users/User/Documents/NyanData/details_count", details);
+            int new_detail = mechanic_gurlz.size();
+            details += new_detail;
+            int now_garbage = garbage_sum - new_detail;
+            pick_garbage.setGarbage(now_garbage);
         }
         return details;
+    }
+
+    public static Mechanic getInstance() {
+        return Mechanic_Holder.mechanicInstance;
+    }
+
+    private static class Mechanic_Holder{
+        private static final Mechanic mechanicInstance = new Mechanic();
+    }
+
+    public int getDetails() {
+        return details;
+    }
+
+    public void setDetails(int new_sum) {
+        details = new_sum;
     }
 
 }
