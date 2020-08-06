@@ -2,51 +2,73 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 
 public class ManagementMenu implements ActionListener, ItemListener {
     GirlsLists girlsLists = GirlsLists.getInstance();
-    DefaultListModel free_girls_model = new DefaultListModel();
-    DefaultListModel mechanic_girls_model = new DefaultListModel();
-    DefaultListModel garbagers_model = new DefaultListModel();
-    JList free_girls_list = new JList(free_girls_model);
-    JList garbagers_list = new JList(garbagers_model);
-    JList mechanics_list = new JList(mechanic_girls_model);
-    JPanel pan2 = new JPanel(new GridLayout(3, 1));
-    JScrollPane scrollPane1 = new JScrollPane();
-    JScrollPane scrollPane2 = new JScrollPane();
-    JScrollPane scrollPane3 = new JScrollPane();
-    JFrame frame = new JFrame("Android Management Menu v.1337");
+    Map <JPanel, NewAndroid> checkList = new HashMap<>();
+    Map <JPanel, NewAndroid> all = new HashMap<>();
+    JMenuBar menuBar = new JMenuBar();
+    JMenu managemenu, managemenu1;
+    JPanel free_panel = new JPanel();
+    JPanel garbage_panel = new JPanel();
+    JPanel mechanic_panel = new JPanel();
+    JLabel free_label, garbage_label, mechanic_label;
+    Thread garbage_thread, mechanic_thread;
 
-    public JMenuBar createMenuBar(JLabel free_label, JLabel garbagers_label, Thread garbage_thread,
-                                  JLabel mechanic_label, Thread mechanic_thread) {
+    public ManagementMenu (JLabel free_label, JLabel garbage_label, Thread garbage_thread,
+                           JLabel mechanic_label, Thread mechanic_thread){
+        this.free_label = free_label;
+        this.garbage_label = garbage_label;
+        this.mechanic_label = mechanic_label;
+        this.garbage_thread = garbage_thread;
+        this.mechanic_thread = mechanic_thread;
+    }
 
-        JMenuBar menuBar;
-        JMenu managemenu;
-        JMenu hiresubmenu, dismisssubmenu;
-        JMenuItem garbage_menuItem, garbage1_menuItem, mechanic_menuItem, mechanic1_menuItem;
+    public JMenuBar createMenuBar() {
 
-
-        //Create the menu bar.
-        menuBar = new JMenuBar();
-
-        //Build the Edit menu.
-        managemenu = new JMenu("Randomly");
+        managemenu = new JMenu("Auto job manage");
         managemenu.setMnemonic(KeyEvent.VK_R);
         managemenu.getAccessibleContext().setAccessibleDescription("");
         menuBar.add(managemenu);
+
+        managemenu1 = new JMenu("Dismiss");
+        managemenu1.setMnemonic(KeyEvent.VK_D);
+        managemenu1.getAccessibleContext().setAccessibleDescription("");
+        menuBar.add(managemenu1);
+        managemenu1.setVisible(false);
+        managemenu1.addActionListener(e -> {
+
+            for (Map.Entry<JPanel, NewAndroid> pair : checkList.entrySet()){
+                NewAndroid girl = pair.getValue();
+                System.out.println(girl.getJob());
+                String subString = girl.getJob();
+                changeWorkStatus( subString + "_girls", "free_girls",
+                        getObject(subString, "_label"), free_label, subString,
+                        "Free: ", garbage_thread, false);
+                resetPanels(garbage_panel, false);
+            }
+        });
+
+        ActionListener hireListener = e -> {
+
+        };
+
+        ActionListener dismissListener = e -> {
+
+        };
 
         JMenu hireSubmenu = new JMenu("Hire");
         JMenu hireGarbargers = new JMenu("to Garbagers");
         JMenuItem toWastelands = new JMenuItem("In wastelands");
         toWastelands.addActionListener(e -> {
-            NewAndroid girl = hireGirl("garbage_picker", garbagers_label, free_label,
-                    "Garbagers: ", garbage_thread);
-            manageGirl(girl, free_girls_model, garbagers_model);
-            //сделать отдельный метод
-
-            //конец метода
+            //ТОЛЬКО ИЗ FREE, если нет никого, то setEnabled (false)
+            changeWorkStatus("free_girls","garbage_girls", garbage_label, free_label,
+                    "Free: ","Garbagers: ", garbage_thread, true);
+            resetPanels(garbage_panel, true);
         });
         JMenuItem toGreenhouse = new JMenuItem("In greenhouse");
         //если нет теплицы, то функция не работает
@@ -56,8 +78,8 @@ public class ManagementMenu implements ActionListener, ItemListener {
         JMenu hireMechanics = new JMenu("to Mechanics");
         JMenuItem make_details = new JMenuItem("Making details");
         make_details.addActionListener(e -> {
-            hireGirl("mechanic_gurlz", mechanic_label, free_label,
-                    "Mechanics: ", mechanic_thread);
+            //changeWorkStatus("mechanic_gurlz", mechanic_label, free_label,
+                   //"Mechanics: ", mechanic_thread, true);
 
         });
         hireSubmenu.add(hireGarbargers);
@@ -77,20 +99,19 @@ public class ManagementMenu implements ActionListener, ItemListener {
     }
 
     public Frame createManageMenu(JMenuBar jMenuBar) {
-        addToModel(girlsLists.free_girls, free_girls_model);
-        addToModel(girlsLists.garbage_picker, garbagers_model);
-        addToModel(girlsLists.mechanic_gurlz, mechanic_girls_model);
+        addToMainPanel(girlsLists.free_girls, free_panel);
+        addToMainPanel(girlsLists.garbage_girls, garbage_panel);
+        addToMainPanel(girlsLists.mechanic_girls, mechanic_panel);
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-        JPanel pan1 = new JPanel(new GridLayout(3, 1));
-        pan1.add(free_girls_list);
-        pan2.add(garbagers_list);
-        JPanel pan3 = new JPanel(new GridLayout(3, 1));
-        pan3.add(mechanics_list);
+        JFrame frame = new JFrame("Android Management Menu v.1337");
 
-        tabbedPane.add("Free girls", scrollPane1);
+        JScrollPane scrollPane1 = new JScrollPane(free_panel);
+        JScrollPane scrollPane2 = new JScrollPane(garbage_panel);
+        JScrollPane scrollPane3 = new JScrollPane(mechanic_panel);
+
+        tabbedPane.add(scrollPane1, "Free girls");
         tabbedPane.add("Garbargers", scrollPane2);
         tabbedPane.add("Mechanics", scrollPane3);
-
 
         frame.setJMenuBar(jMenuBar);
         frame.add(tabbedPane);
@@ -101,60 +122,136 @@ public class ManagementMenu implements ActionListener, ItemListener {
         return frame;
     }
 
-    private NewAndroid hireGirl(String job_name, JLabel worker_label, JLabel free_label, String worker,
-                            Thread thread) {
-        NewAndroid random_girl = randomName(girlsLists.free_girls);
-        int free_girls_count = girlsLists.getGirlsList("free_girls").size();
-        if (free_girls_count > 0) {
-            girlsLists.free_girls.remove(random_girl);
-            girlsLists.getGirlsList(job_name).add(random_girl);
-            worker_label.setText(worker + girlsLists.getGirlsList(job_name).size());
-            free_label.setText("Free: " + girlsLists.free_girls.size());
-            if(!thread.isAlive()){
+    private void changeWorkStatus(String fromJob, String toJob, JLabel exwork, JLabel now_work,
+                                  String exworker, String now_worker, Thread thread, boolean isAuto) {
+        int girlsSize = girlsLists.getGirlsList(fromJob).size();
+        if (girlsSize > 0) {
+            if (isAuto) {
+                /*NewAndroid random_girl = randomName(girlsLists.getGirlsList(fromJob));
+                girlsLists.getGirlsList(fromJob).remove(random_girl);
+                girlsLists.getGirlsList(toJob).add(random_girl);
+                 */
+                NewAndroid random_girl = randomName(all);
+                String job_name = random_girl.getJob() + "_girls";
+                girlsLists.getGirlsList(job_name).remove(random_girl);
+                girlsLists.setGirlsList(toJob, random_girl);
+                random_girl.setJob(toJob);
+            } else {
+                for (Map.Entry<JPanel, NewAndroid> pair : checkList.entrySet()) {
+                    NewAndroid girl = pair.getValue();
+                    girlsLists.getGirlsList(fromJob).remove(girl);
+                    girlsLists.getGirlsList(toJob).add(girl);
+                    girl.setJob(toJob);
+                }
+            }
+            if (!thread.isAlive()) {
                 thread.start();
             }
         }
-        return random_girl;
+        exwork.setText(exworker + girlsLists.getGirlsList(fromJob).size());
+        now_work.setText(now_worker + girlsLists.getGirlsList(toJob).size());
+        if (girlsSize < 1) {
+            thread.interrupt();
+        }
     }
 
-    private NewAndroid dismissGirl(String job_name, JLabel worker_label, JLabel free_label, String worker,
-                               Thread thread){
-        NewAndroid random_girl = randomName(girlsLists.getGirlsList(job_name));
-        int job_count = girlsLists.getGirlsList(job_name).size();
-        if (job_count > 0) {
-            girlsLists.free_girls.remove(random_girl);
-            girlsLists.getGirlsList(job_name).remove(random_girl);
-            int size = girlsLists.getGirlsList(job_name).size();
-            worker_label.setText(worker + size);
-            free_label.setText("Free: " + girlsLists.free_girls.size());
-            if (size < 1){
-                thread.interrupt();
+    private NewAndroid randomName(Map<JPanel, NewAndroid> map) {
+        Object[] keys = map.keySet().toArray();
+        Object key = keys[new Random().nextInt(keys.length)];
+        return map.get(key);
+    }
+
+    private JLabel getObject(String subString, String endString){
+        String name;
+        JLabel label = null;
+        JLabel [] objects = {free_label, garbage_label, mechanic_label};
+        for (JLabel j: objects){
+            name = j.getName();
+            if(name.equals(subString + endString)){
+                label = j;
+                break;
             }
         }
-        return random_girl;
+        return label;
     }
 
-    private NewAndroid randomName(ArrayList<NewAndroid> list) {
-        Random rand = new Random();
-        return list.get(rand.nextInt(list.size()));
-    }
-
-    private void addToModel(ArrayList <NewAndroid> list, DefaultListModel model) {
-
-        for (NewAndroid gurlz : list) {
-            model.addElement(gurlz.getName());
-            model.addElement(gurlz.getInfo());
-            model.addElement(gurlz.getVersion());
-
+    private void addToMainPanel(ArrayList<NewAndroid> list, JPanel mainPanel) {
+        mainPanel.setLayout(getLayout());
+        for (NewAndroid girl : list) {
+            JPanel panel = new JPanel();
+            String[] data = {girl.getName(), girl.getInfo(), girl.getVersion()};
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            panel.setBackground(Color.WHITE);
+            for (String s : data) {
+                JLabel label = new JLabel(s);
+                panel.add(label);
+            }
+            mainPanel.add(panel, getCons());
+            getCheckBox(panel, girl);
+            all.put(panel, girl);
         }
+        mainPanel.setBackground(Color.LIGHT_GRAY);
     }
 
-    private void manageGirl(NewAndroid girl, DefaultListModel fromModel, DefaultListModel toModel){
-        String [] data = {girl.getName(), girl.getInfo(), girl.getVersion()};
-        for (String s: data){
-                toModel.addElement(s);
-                fromModel.removeElement(s);
+    private void getCheckBox(JPanel panel, NewAndroid girl) {
+        JCheckBox checkBox = new JCheckBox();
+        checkBox.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                checkList.put(panel, girl);
+            }
+            if (e.getStateChange() == ItemEvent.DESELECTED) {
+                checkList.remove(panel, girl);
+            }
+
+            if (checkList.isEmpty()) {
+                managemenu1.setVisible(false);
+                managemenu.setVisible(true);
+            } else {
+                managemenu1.setVisible(true);
+                managemenu.setVisible(false);
+            }
+            System.out.println(checkList.size());
+
+        });
+        panel.add(checkBox);
+    }
+
+    private void resetPanels(JPanel toMainPanel, boolean isAuto) {
+        Map <JPanel, NewAndroid> map;
+        if (isAuto){
+            map = all;
         }
+        else {
+            map = checkList;
+        }
+        for (Map.Entry<JPanel, NewAndroid> pair : map.entrySet()){
+            JPanel child = pair.getKey();
+            JPanel parent = (JPanel) child.getParent();
+            parent.remove(child);
+            parent.revalidate();
+            parent.repaint();
+            toMainPanel.add(child, getCons());
+        }
+
+    }
+
+    private GridBagConstraints getCons() {
+        GridBagConstraints cons = new GridBagConstraints();
+        cons.weightx = 1;
+        cons.anchor = GridBagConstraints.NORTHWEST;
+        cons.gridwidth = GridBagConstraints.REMAINDER;
+        cons.fill = GridBagConstraints.HORIZONTAL;
+        cons.insets = new Insets(0, 0, 0, 0);
+        return cons;
+    }
+
+    private GridBagLayout getLayout() {
+        GridBagLayout gridBagLayout = new GridBagLayout();
+        gridBagLayout.rowHeights = new int[]{0, 0, 0, 0};
+        gridBagLayout.rowWeights = new double[]{0.0, 0.0, 1.0, 1.0};
+        gridBagLayout.columnWidths = new int[]{0, 0, 0, 0};
+        gridBagLayout.columnWeights = new double[]{0.0, 0.0, 1.0, 1.0};
+        return gridBagLayout;
     }
 
     @Override
