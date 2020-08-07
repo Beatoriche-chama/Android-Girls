@@ -19,7 +19,6 @@ public class TimerWrapper {
         this.supplier = supplier;
         this.cute = cute;
         this.isLimited = isLimited;
-        this.timer = new Timer();
     }
 
     public boolean getStatus() {
