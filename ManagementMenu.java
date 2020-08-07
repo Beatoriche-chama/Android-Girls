@@ -3,8 +3,8 @@ import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,9 +46,11 @@ public class ManagementMenu implements ActionListener, ItemListener {
                     NewAndroid girl = pair.getValue();
                     String subString = girl.getJob();
                     System.out.println(subString);
-                    changeWorkStatus(subString, "free_girls",
-                            getObject(subString, "_label"), free_label, subString,
-                            "Free: ", garbage_wrapper, false, true);
+                    changeWorkStatus(subString + "_girls", "free_girls",
+                            (JLabel) getObj(subString, "_label"), free_label,
+                            (String) getObj(subString, null), "Free: ",
+                            (TimerWrapper) getObj(subString, "_wrapper"),
+                            false, true);
                     resetPanels(free_panel, false);
                     System.out.println("Убираем ручками");
                 }
@@ -142,17 +144,15 @@ public class ManagementMenu implements ActionListener, ItemListener {
         if (girlsSize > 0) {
             if (isAuto) {
                 NewAndroid random_girl = randomName(all);
-                String job_name = random_girl.getJob();
-                System.out.println(random_girl.getJob() + " ТТУУУУУУТ");
-                girlsLists.getGirlsList(job_name).remove(random_girl);
+                girlsLists.getGirlsList(fromJob).remove(random_girl);
                 girlsLists.setGirlsList(toJob, random_girl);
-                random_girl.setJob(toJob);
+                random_girl.setJob(getSubstring(toJob));
             } else {
                 for (Map.Entry<JPanel, NewAndroid> pair : checkList.entrySet()) {
                     NewAndroid girl = pair.getValue();
                     girlsLists.getGirlsList(fromJob).remove(girl);
                     girlsLists.getGirlsList(toJob).add(girl);
-                    girl.setJob(toJob);
+                    girl.setJob(getSubstring(toJob));
                 }
             }
             System.out.println(wrapper.getStatus() + " перед проверкой на hire");
@@ -165,7 +165,7 @@ public class ManagementMenu implements ActionListener, ItemListener {
         exwork.setText(exworker + girlsLists.getGirlsList(fromJob).size());
         now_work.setText(now_worker + girlsLists.getGirlsList(toJob).size());
         System.out.println(wrapper.getStatus() + " перед проверкой на dismiss");
-        if (isDismiss && girlsSize < 1) {
+        if (isDismiss && girlsLists.getGirlsList(fromJob).size() < 1) {
             System.out.println(wrapper.getStatus() + " прошел проверку на dismiss");
             System.out.println("DISMISS");
             wrapper.timerStop();
@@ -179,30 +179,43 @@ public class ManagementMenu implements ActionListener, ItemListener {
         return map.get(key);
     }
 
-    private JLabel getObject(String subString, String endString) {
+    private Object getObj(String obj_name, String class_name) {
+        Object certain_object = null;
+        List<String> var_names = Arrays.asList("free_label", "garbage_label", "mechanic_label",
+                "garbage_wrapper");
+        List<Object> objects = Arrays.asList(free_label, garbage_label, mechanic_label,
+                garbage_wrapper);
+        List<String> texts = Arrays.asList("Free: ", "Garbagers: ", "Mechanics: ", "Alchemists: ", "Flower pickers: ");
+        int i = 0;
+        if (class_name == null) {
+            for (String s : texts) {
+                if (s.regionMatches(true, 0, obj_name, 0, 3)) {
+                    certain_object = s;
+                }
+            }
+        } else {
+            for (String s : var_names) {
+                if (s.equals(obj_name + class_name)) {
+                    certain_object = objects.get(i);
+                    System.out.println(s);
+                }
+                i++;
+            }
+        }
+
+        return certain_object;
+    }
+
+    private String getSubstring(String word) {
+        System.out.println("Вводимое слово: " + word);
+        String subString = null;
         Pattern pattern = Pattern.compile(".+?(?=_)");
-        Matcher matcher = pattern.matcher(subString);
+        Matcher matcher = pattern.matcher(word);
         if (matcher.find()) {
             subString = matcher.group();
         }
-
-        String name;
-        JLabel label = null;
-        List<String> names = Arrays.asList("free_label", "garbage_label", "mechanic_label");
-        List<JLabel> objects = Arrays.asList(free_label, garbage_label, mechanic_label);
-        int i = 0;
-        for (String n : names) {
-            name = n;
-            System.out.println(name);
-            if (name.equals(subString + endString)) {
-                System.out.println("СРАБОТАЛО");
-                label = objects.get(i);
-                break;
-            }
-            i++;
-        }
-
-        return label;
+        System.out.println("Получаемое слово: " + subString);
+        return subString;
     }
 
     private void addToMainPanel(ArrayList<NewAndroid> list, JPanel mainPanel) {
