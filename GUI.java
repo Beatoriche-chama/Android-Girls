@@ -16,7 +16,6 @@ public class GUI extends JFrame {
     GirlsLists girlsLists = GirlsLists.getInstance();
     FileManage fileManage = new FileManage();
     EnergyGenerator energyGenerator = EnergyGenerator.getInstance();
-    Android_Helper android_helper = new Android_Helper();
     JLabel name = new JLabel();
     JLabel energy_count = new JLabel("x энергии сейчас");
     JFrame frame = new JFrame("Android Girls");
@@ -24,9 +23,9 @@ public class GUI extends JFrame {
     Image image = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/background.jpg"));
     Image image1 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("/button.jpg"));
     JLabel details_left = new JLabel("30 деталек");
-    Thread garbageThread, flowerThread, fuelThread, detailsThread;
     String android_path = "C:/Users/User/Documents/NyanData/Androids";
     JLabel free = new JLabel("Free: 0");
+    TimerWrapper pick_old_staff, pick_flower, making_fuel, make_details;
 
     JPanel panel = new JPanel() {
         @Override
@@ -105,10 +104,9 @@ public class GUI extends JFrame {
         panel.add(flower_pickers);
         flower_pickers.setBounds(600, 110, 145, 60);
 
-        flowerThread = new Thread(() -> {
-            TimerWrapper pick_flower = new TimerWrapper(flower_count, 5_000);
-            pick_flower.run(() -> p.flowerPicker(girlsLists.getGirlsList("flower_picker")), " цветочков");
-        });
+        pick_flower = new TimerWrapper(flower_count, 5_000,
+                () -> p.flowerPicker(girlsLists.getGirlsList("flower_girls")),
+                " цветочков", false);
 
 
         free.setFont(new Font("Century Schoolbook", Font.BOLD, 16));
@@ -120,10 +118,9 @@ public class GUI extends JFrame {
         panel.add(garbagers);
         garbagers.setBounds(600, 250, 145, 60);
 
-        garbageThread = new Thread(() -> {
-            TimerWrapper pick_old_staff = new TimerWrapper(garbage_count, 5_000);
-            pick_old_staff.run(() -> g.garbagePicker(girlsLists.getGirlsList("garbage_picker")), " мусора");
-        });
+        pick_old_staff = new TimerWrapper(garbage_count, 5_000,
+                () -> g.garbagePicker(girlsLists.getGirlsList("garbage_girls")),
+                " мусора", false);
 
         JLabel alchemists = new JLabel("Alchemists: 0");
         alchemists.setFont(new Font("Century Schoolbook", Font.BOLD, 16));
@@ -131,20 +128,18 @@ public class GUI extends JFrame {
         panel.add(alchemists);
         alchemists.setBounds(600, 320, 145, 60);
 
-        fuelThread = new Thread(() -> {
-            TimerWrapper making_fuel = new TimerWrapper(fuel_count, 15_000);
-            making_fuel.run(() -> a.alchemyFuel(girlsLists.getGirlsList("alchemy_gurlz")), " топлива");
-        });
+        making_fuel = new TimerWrapper(fuel_count, 15_000,
+                () -> a.alchemyFuel(girlsLists.getGirlsList("alchemy_girls")),
+                " топлива", false);
 
         JLabel mechanics = new JLabel("Mechanics: ");
         mechanics.setFont(new Font("Century Schoolbook", Font.BOLD, 16));
         panel.add(mechanics);
         mechanics.setBounds(600, 390, 145, 60);
 
-        detailsThread = new Thread(() -> {
-            TimerWrapper make_details = new TimerWrapper(details_count, 10_000);
-            make_details.run(() -> m.mechanicDetails(girlsLists.getGirlsList("mechanic_gurlz")), " деталек");
-        });
+        make_details = new TimerWrapper(details_count, 10_000,
+                () -> m.mechanicDetails(girlsLists.getGirlsList("mechanic_girls")),
+                " деталек", false);
 
 
         JButton manage = new JButton("Job manage");
@@ -154,8 +149,8 @@ public class GUI extends JFrame {
         manage.setBounds(600, 80, 140, 30);
 
         manage.addActionListener(hi -> {
-            ManagementMenu managementMenu = new ManagementMenu();
-            managementMenu.createPopUpMenu(manage, free, garbagers, garbageThread, mechanics, detailsThread);
+            ManagementMenu managementMenu = new ManagementMenu(free, garbagers, pick_old_staff);
+            managementMenu.createManageMenu(managementMenu.createMenuBar());
         });
 
         JOptionPane.showMessageDialog(GUI.this, "Девочки-андроиды выключатся, " +
@@ -170,9 +165,9 @@ public class GUI extends JFrame {
         new File("C:/Users/User/Documents/NyanData").mkdirs();
         String id_path = "C:/Users/User/Documents/NyanData/helper";
         int helper_icon_id = Integer.parseInt(fileManage.fileLoad(id_path,
-                "Id иконки: ", 1, true));
+                "Icon id: ", 1, true));
         if (helper_icon_id == 0) {
-            NewAndroid n = new NewAndroid();
+            NewAndroid n = new NewAndroid(true);
             girlsLists.setGirlsList("free_girls", n);
             helper_icon_id = n.getIconId();
             System.out.println("Имя девочки: " + n.getName());
@@ -189,7 +184,7 @@ public class GUI extends JFrame {
         Dimension icon_size = icon.getPreferredSize();
         icon.setBounds(30, 50, icon_size.width, icon_size.height);
 
-        String helper_name = fileManage.fileLoad(id_path, "Имя помощницы: ", 2, false);
+        String helper_name = fileManage.fileLoad(id_path, "Helper name: ", 2, false);
         if (helper_name == null) {
             helper_name = girlsLists.free_girls.get(0).getName();
         }
@@ -201,23 +196,20 @@ public class GUI extends JFrame {
 
         fileManage.fileCreate(android_path);
         int all_girls = Integer.parseInt(fileManage.fileLoad(android_path,
-                "Всего: ", 1, true));
+                "All: ", 1, true));
         if (all_girls == 0) {
             girlsLists.setAll_girls(1);
         }
-        fileManage.fileLoad(android_path, "Безработные: ", 2, true);
-        threadStarter();
+        fileManage.fileLoad(android_path, "Free: ", 2, true);
+        timerStarter();
 
-        JButton job = new JButton("Менеджер", icon1);
+        JButton job = new JButton("Помощь", icon1);
         job.setFont(new Font("Century Schoolbook", Font.BOLD, 15));
         job.setHorizontalTextPosition(SwingConstants.CENTER);
         panel.add(job);
         job.setBounds(350, 110, 140, 30);
 
-        job.addActionListener(n -> {
-            ManagementMenu managementMenu = new ManagementMenu();
-            managementMenu.createManageMenu();
-        });
+        job.addActionListener(n -> System.out.println("Няк~"));
 
         panel.add(energy_count);
         energy_count.setFont(new Font("Serif", Font.BOLD, 18));
@@ -230,27 +222,29 @@ public class GUI extends JFrame {
             energyGenerator.setEnergy(400);
         }
 
-        TimerWrapper energy = new TimerWrapper(energy_count, 10000);
-        energy.runLimited(() -> {
+        TimerWrapper energy = new TimerWrapper(energy_count, 10000, this::energySupplier,
+                " энергии сейчас (´-ω-`)", true);
+        energy.timerStart();
+    }
+
+    public int energySupplier() {
+        int energy_now = energyGenerator.eatEnergy();
+        int details = m.getDetails();
+        details_left.setText((30 - details) + " details left to gather~");
+        if (details == 30) {
+            details_left.setText("");
+            win();
+            energyGenerator.giveEnergy();
+        }
+        if (energy_now < 1) {
+            energy_count.setText("Energy is 0. Do Androids Dream of Electric Sheep?");
             try {
-                int energy_now = energyGenerator.eatEnergy();
-                int details = m.getDetails();
-                details_left.setText((30 - details) + " деталек осталось собрать");
-                if (details == 30) {
-                    details_left.setText("");
-                    win();
-                    energyGenerator.giveEnergy();
-                }
-                if (energy_now < 1) {
-                    energy_count.setText("Энергии 0. Андроиды уснули.");
-                    badEndmessage();
-                }
-                return energy_now;
+                badEndmessage();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            return null;
-        }, " энергии сейчас (´-ω-`)");
+        }
+        return energy_now;
     }
 
     public void restart() {
@@ -285,7 +279,7 @@ public class GUI extends JFrame {
         }
     }
 
-    public void threadStarter() throws IOException {
+    public void timerStarter() throws IOException {
         int garbargers = Integer.parseInt(fileManage.fileLoad(android_path,
                 "Старьевщицы: ", 3, true));
         int mechanics = Integer.parseInt(fileManage.fileLoad(android_path,
@@ -294,15 +288,15 @@ public class GUI extends JFrame {
                 "Цветочницы: ", 5, true));
         int alchemists = Integer.parseInt(fileManage.fileLoad(android_path,
                 "Алхимики: ", 6, true));
-        Map<Integer, Thread> map = new HashMap();
-        map.put(garbargers, garbageThread);
-        map.put(mechanics, detailsThread);
-        map.put(flower_girls, flowerThread);
-        map.put(alchemists, fuelThread);
+        Map<Integer, TimerWrapper> map = new HashMap();
+        map.put(garbargers, pick_old_staff);
+        map.put(mechanics, make_details);
+        map.put(flower_girls, pick_flower);
+        map.put(alchemists, making_fuel);
 
-        for (Map.Entry<Integer, Thread> pair : map.entrySet()) {
+        for (Map.Entry<Integer, TimerWrapper> pair : map.entrySet()) {
             if (pair.getKey() > 0) {
-                pair.getValue().start();
+                pair.getValue().timerStart();
             }
         }
         map.clear();
