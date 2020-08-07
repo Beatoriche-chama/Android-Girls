@@ -11,23 +11,21 @@ import java.util.regex.Pattern;
 
 public class ManagementMenu implements ActionListener, ItemListener {
     GirlsLists girlsLists = GirlsLists.getInstance();
-    Map <JPanel, NewAndroid> checkList = new HashMap<>();
-    Map <JPanel, NewAndroid> all = new HashMap<>();
+    Map<JPanel, NewAndroid> checkList = new HashMap<>();
+    Map<JPanel, NewAndroid> all = new HashMap<>();
     JMenuBar menuBar = new JMenuBar();
     JMenu managemenu, managemenu1;
     JPanel free_panel = new JPanel();
     JPanel garbage_panel = new JPanel();
     JPanel mechanic_panel = new JPanel();
     JLabel free_label, garbage_label, mechanic_label;
-    Thread garbage_thread, mechanic_thread;
+    TimerWrapper garbage_wrapper;
 
-    public ManagementMenu (JLabel free_label, JLabel garbage_label, Thread garbage_thread,
-                           JLabel mechanic_label, Thread mechanic_thread){
+    public ManagementMenu(JLabel free_label, JLabel garbage_label, TimerWrapper garbage_wrapper) {
         this.free_label = free_label;
         this.garbage_label = garbage_label;
         this.mechanic_label = mechanic_label;
-        this.garbage_thread = garbage_thread;
-        this.mechanic_thread = mechanic_thread;
+        this.garbage_wrapper = garbage_wrapper;
     }
 
     public JMenuBar createMenuBar() {
@@ -43,14 +41,16 @@ public class ManagementMenu implements ActionListener, ItemListener {
         menuBar.add(managemenu1);
         managemenu1.setVisible(false);
         managemenu1.addMenuListener(new MenuListener() {
-            public void menuSelected(MenuEvent e){
-                for (Map.Entry<JPanel, NewAndroid> pair : checkList.entrySet()){
+            public void menuSelected(MenuEvent e) {
+                for (Map.Entry<JPanel, NewAndroid> pair : checkList.entrySet()) {
                     NewAndroid girl = pair.getValue();
                     String subString = girl.getJob();
-                    changeWorkStatus( subString + "_girls", "free_girls",
+                    System.out.println(subString);
+                    changeWorkStatus(subString, "free_girls",
                             getObject(subString, "_label"), free_label, subString,
-                            "Free: ", garbage_thread, false, true);
+                            "Free: ", garbage_wrapper, false, true);
                     resetPanels(free_panel, false);
+                    System.out.println("Убираем ручками");
                 }
             }
 
@@ -79,8 +79,9 @@ public class ManagementMenu implements ActionListener, ItemListener {
         JMenuItem toWastelands = new JMenuItem("In wastelands");
         toWastelands.addActionListener(e -> {
             //ТОЛЬКО ИЗ FREE, если нет никого, то setEnabled (false)
-            changeWorkStatus("free_girls","garbage_girls", garbage_label, free_label,
-                    "Free: ","Garbagers: ", garbage_thread, true, false);
+            System.out.println("Нанимаем рандомом");
+            changeWorkStatus("free_girls", "garbage_girls", free_label, garbage_label,
+                    "Free: ", "Garbagers: ", garbage_wrapper, true, false);
             resetPanels(garbage_panel, true);
         });
         JMenuItem toGreenhouse = new JMenuItem("In greenhouse");
@@ -92,7 +93,7 @@ public class ManagementMenu implements ActionListener, ItemListener {
         JMenuItem make_details = new JMenuItem("Making details");
         make_details.addActionListener(e -> {
             //changeWorkStatus("mechanic_gurlz", mechanic_label, free_label,
-                   //"Mechanics: ", mechanic_thread, true);
+            //"Mechanics: ", mechanic_thread, true);
 
         });
         hireSubmenu.add(hireGarbargers);
@@ -136,19 +137,16 @@ public class ManagementMenu implements ActionListener, ItemListener {
     }
 
     private void changeWorkStatus(String fromJob, String toJob, JLabel exwork, JLabel now_work, String exworker,
-                                  String now_worker, Thread thread, boolean isAuto, boolean isDismiss) {
+                                  String now_worker, TimerWrapper wrapper, boolean isAuto, boolean isDismiss) {
         int girlsSize = girlsLists.getGirlsList(fromJob).size();
         if (girlsSize > 0) {
             if (isAuto) {
                 NewAndroid random_girl = randomName(all);
-                String job_name = random_girl.getJob() + "_girls";
+                String job_name = random_girl.getJob();
+                System.out.println(random_girl.getJob() + " ТТУУУУУУТ");
                 girlsLists.getGirlsList(job_name).remove(random_girl);
                 girlsLists.setGirlsList(toJob, random_girl);
-                Pattern pattern = Pattern.compile("^(?!|_girls).*$");
-                Matcher matcher = pattern.matcher(toJob);
-                if (matcher.find()){
-                    random_girl.setJob(matcher.group(1));
-                }
+                random_girl.setJob(toJob);
             } else {
                 for (Map.Entry<JPanel, NewAndroid> pair : checkList.entrySet()) {
                     NewAndroid girl = pair.getValue();
@@ -157,14 +155,21 @@ public class ManagementMenu implements ActionListener, ItemListener {
                     girl.setJob(toJob);
                 }
             }
-            if (!isDismiss && !thread.isAlive()) {
-                thread.start();
+            System.out.println(wrapper.getStatus() + " перед проверкой на hire");
+            if (!isDismiss && !wrapper.getStatus()) {
+
+                System.out.println("HIRE");
+                wrapper.timerStart();
             }
         }
         exwork.setText(exworker + girlsLists.getGirlsList(fromJob).size());
         now_work.setText(now_worker + girlsLists.getGirlsList(toJob).size());
+        System.out.println(wrapper.getStatus() + " перед проверкой на dismiss");
         if (isDismiss && girlsSize < 1) {
-            thread.interrupt();
+            System.out.println(wrapper.getStatus() + " прошел проверку на dismiss");
+            System.out.println("DISMISS");
+            wrapper.timerStop();
+            System.out.println(wrapper.getStatus() + " после проверки на dismiss");
         }
     }
 
@@ -174,22 +179,28 @@ public class ManagementMenu implements ActionListener, ItemListener {
         return map.get(key);
     }
 
-    private JLabel getObject(String subString, String endString){
+    private JLabel getObject(String subString, String endString) {
+        Pattern pattern = Pattern.compile(".+?(?=_)");
+        Matcher matcher = pattern.matcher(subString);
+        if (matcher.find()) {
+            subString = matcher.group();
+        }
+
         String name;
         JLabel label = null;
-        List <String> names = Arrays.asList("free_label", "garbage_label", "mechanic_label");
-        List <JLabel> objects = Arrays.asList(free_label, garbage_label, mechanic_label);
+        List<String> names = Arrays.asList("free_label", "garbage_label", "mechanic_label");
+        List<JLabel> objects = Arrays.asList(free_label, garbage_label, mechanic_label);
         int i = 0;
-            for(String n : names){
-                name = n;
-                System.out.println(name);
-                if(name.equals(subString + endString)){
-                    System.out.println("СРАБОТАЛО");
-                    label = objects.get(i);
-                    break;
-                }
-                i++;
+        for (String n : names) {
+            name = n;
+            System.out.println(name);
+            if (name.equals(subString + endString)) {
+                System.out.println("СРАБОТАЛО");
+                label = objects.get(i);
+                break;
             }
+            i++;
+        }
 
         return label;
     }
@@ -236,14 +247,13 @@ public class ManagementMenu implements ActionListener, ItemListener {
     }
 
     private void resetPanels(JPanel toMainPanel, boolean isAuto) {
-        Map <JPanel, NewAndroid> map;
-        if (isAuto){
+        Map<JPanel, NewAndroid> map;
+        if (isAuto) {
             map = all;
-        }
-        else {
+        } else {
             map = checkList;
         }
-        for (Map.Entry<JPanel, NewAndroid> pair : map.entrySet()){
+        for (Map.Entry<JPanel, NewAndroid> pair : map.entrySet()) {
             JPanel child = pair.getKey();
             JPanel parent = (JPanel) child.getParent();
             parent.remove(child);
