@@ -1,29 +1,41 @@
+import net.miginfocom.swing.MigLayout;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.event.InternalFrameAdapter;
+import javax.swing.event.InternalFrameEvent;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import java.awt.*;
-import java.awt.event.*;
-import java.util.List;
-import java.util.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+import static javax.swing.WindowConstants.DISPOSE_ON_CLOSE;
 
 
 public class ManagementMenu implements ActionListener, ItemListener {
-    GirlsLists girlsLists = GirlsLists.getInstance();
+    Lists lists = Lists.getInstance();
     Map<JPanel, NewAndroid> checkList = new HashMap<>();
     Map<JPanel, NewAndroid> all = new HashMap<>();
+    JLayeredPane jDesktopPane;
+    JButton manageButton;
     JMenuBar menuBar = new JMenuBar();
-    JPanel free_panel = new JPanel();
-    JPanel garbagers_panel = new JPanel();
-    JPanel mechanics_panel = new JPanel();
-    JLabel free_label, garbagers_label, mechanics_label;
-    TimerWrapper garbagers_wrapper;
+    Map<String, ObjectsWrapper> objects;
     JMenu hireMenu, dismissAutoMenu, dismissMenu;
 
-    public ManagementMenu(JLabel free_label, JLabel garbage_label, TimerWrapper garbage_wrapper) {
-        this.free_label = free_label;
-        this.garbagers_label = garbage_label;
-        this.mechanics_label = mechanics_label;
-        this.garbagers_wrapper = garbage_wrapper;
+    public ManagementMenu(Map<String, ObjectsWrapper> objects, JLayeredPane jDesktopPane, JButton manageButton) {
+        this.objects = objects;
+        this.jDesktopPane = jDesktopPane;
+        this.manageButton = manageButton;
+        jDesktopPane.add(createManageMenu(createMenuBar()), 2, 0);
     }
 
     public JMenuBar createMenuBar() {
@@ -50,7 +62,7 @@ public class ManagementMenu implements ActionListener, ItemListener {
                 for (Map.Entry<JPanel, NewAndroid> pair : checkList.entrySet()) {
                     NewAndroid girl = pair.getValue();
                     changeWorkStatus("free", true, girl);
-                    resetPanels(free_panel, null);
+                    resetPanels(getObj("free").getMainPanel(), girl);
                     System.out.println("Убираем ручками");
                 }
             }
@@ -65,8 +77,7 @@ public class ManagementMenu implements ActionListener, ItemListener {
         });
 
         String[] subMenu = {"garbagers", "gardeners", "mechanics", "alchemists", "priests"};
-        //для каждого subMenu свои menuItem (ПОМЕНЯТЬ)
-        //сделать отдельные 4 menu (для selected-чекнутых не нужны JItem)
+
         Map<String, Integer> menuItemMap = new HashMap<>();
         menuItemMap.put("garbagers", 1);
         menuItemMap.put("in wastelands", 2);
@@ -81,9 +92,9 @@ public class ManagementMenu implements ActionListener, ItemListener {
                 if (pair.getValue() == i) {
                     item_name = pair.getKey();
                     JMenuItem item = new JMenuItem(item_name);
-                    item.addActionListener(this::actionPerformed);
+                    item.addActionListener(this);
                     JMenuItem item1 = new JMenuItem(item_name);
-                    item1.addActionListener(this::actionPerformed);
+                    item1.addActionListener(this);
                     menu.add(item);
                     menu1.add(item1);
                 }
@@ -96,67 +107,70 @@ public class ManagementMenu implements ActionListener, ItemListener {
     }
 
 
-    public Frame createManageMenu(JMenuBar jMenuBar) {
-        Map<JPanel, String> map = new HashMap<>();
-        map.put(free_panel, "free");
-        map.put(garbagers_panel, "garbage");
-        map.put(mechanics_panel, "mechanic");
-        for (Map.Entry<JPanel, String> pair : map.entrySet()) {
-            addToMainPanel(girlsLists.androids, pair.getValue(), pair.getKey());
-        }
-
+    public JInternalFrame createManageMenu(JMenuBar jMenuBar) {
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-        JFrame frame = new JFrame("Android Management Menu v.1337");
-
-        JScrollPane scrollPane1 = new JScrollPane(free_panel);
-        JScrollPane scrollPane2 = new JScrollPane(garbagers_panel);
-        JScrollPane scrollPane3 = new JScrollPane(mechanics_panel);
-
-        tabbedPane.add(scrollPane1, "Free girls");
-        tabbedPane.add("Garbargers", scrollPane2);
-        tabbedPane.add("Mechanics", scrollPane3);
-
-        frame.setJMenuBar(jMenuBar);
-        frame.add(tabbedPane);
-
-        frame.pack();
-        frame.setSize(400, 300);
-        frame.setVisible(true);
-        return frame;
+        for (Map.Entry<String, ObjectsWrapper> pair : objects.entrySet()){
+            ObjectsWrapper wrapper = pair.getValue();
+            wrapper.panelSet();
+            JPanel mainPanel = wrapper.getMainPanel();
+            addToMainPanel(lists.androids, pair.getKey(), mainPanel);
+            JScrollPane scrollPane = new JScrollPane(mainPanel);
+            tabbedPane.add(scrollPane, wrapper.getWorkerText());
+        }
+        JInternalFrame jInternalFrame = new JInternalFrame("Android Management Menu v.1337",
+                true,true, true, true);
+        BufferedImage icon = null;
+        try {
+            icon = ImageIO.read(this.getClass().getResource("/manageIcon.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        jInternalFrame.addInternalFrameListener(new InternalFrameAdapter(){
+            public void internalFrameClosing(InternalFrameEvent e) {
+                manageButton.setEnabled(true);
+            }
+        });
+        jInternalFrame.setFrameIcon(new ImageIcon(icon));
+        jInternalFrame.setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        jInternalFrame.setJMenuBar(jMenuBar);
+        jInternalFrame.add(tabbedPane);
+        jInternalFrame.toFront();
+        jInternalFrame.pack();
+        jInternalFrame.setSize(new Dimension(400, 300));
+        jInternalFrame.setVisible(true);
+        return jInternalFrame;
     }
 
     private void changeWorkStatus(String toJob, boolean isDismiss, NewAndroid girl) {
-        String fromJob = girl.getJob();
-        System.out.println(fromJob);
-        String keyWord = fromJob;
-        TimerWrapper wrapperTo = (TimerWrapper) getObj(toJob, "_wrapper");
-        TimerWrapper wrapperFrom = (TimerWrapper) getObj(fromJob, "_wrapper");
-        JLabel exwork = (JLabel) getObj(keyWord, "_label");
-        String exworker = (String) getObj(keyWord, null);
-        String now_worker = (String) getObj(toJob, null);
-        JLabel now_work = (JLabel) getObj(toJob, "_label");
+        String exWorkKey = girl.getJob();
+        ObjectsWrapper objToJob = getObj(toJob);
+        ObjectsWrapper objFromJob = getObj(exWorkKey);
+        TimerWrapper wrapperTo = objToJob.getTimerWrapper();
+        TimerWrapper wrapperFrom = objFromJob.getTimerWrapper();
+        JLabel exwork = objFromJob.getAndroidWorker();
+        String exworkText = objFromJob.getWorkerText();
+        JLabel newWork = objToJob.getAndroidWorker();
+        String newWorkText = objToJob.getWorkerText();
+        girl.setJob(toJob);
+        if (wrapperTo != null || wrapperFrom != null) {
+            if (!isDismiss && !wrapperTo.getStatus()) {
+                System.out.println("HIRE");
+                wrapperTo.timerStart();
+            }
 
-        int girlsSize = girlsLists.getJobs(fromJob);
-        if (girlsSize > 0) {
-            girl.setJob(toJob);
-
-            if (wrapperTo != null || wrapperFrom != null) {
-                if (!isDismiss && !wrapperTo.getStatus()) {
-                    System.out.println("HIRE");
-                    wrapperTo.timerStart();
-                }
-
-                if (isDismiss && girlsLists.getJobs(fromJob) < 1) {
-                    System.out.println(wrapperFrom.getStatus() + " прошел проверку на dismiss");
-                    System.out.println("DISMISS");
-                    wrapperFrom.timerStop();
-                    System.out.println(wrapperFrom.getStatus() + " после проверки на dismiss");
-                }
+            if (isDismiss && lists.getJobs(exWorkKey) < 1) {
+                System.out.println(wrapperFrom.getStatus() + " прошел проверку на dismiss");
+                System.out.println("DISMISS");
+                wrapperFrom.timerStop();
+                System.out.println(wrapperFrom.getStatus() + " после проверки на dismiss");
             }
         }
-        exwork.setText(exworker + girlsLists.getJobs(fromJob));
-        now_work.setText(now_worker + girlsLists.getJobs(toJob));
+
+        exwork.setText(exworkText + lists.getJobs(exWorkKey));
+        newWork.setText(newWorkText + lists.getJobs(toJob));
+        //resetPanels()
     }
+
 
     private NewAndroid randomName(Map<JPanel, NewAndroid> map) {
         Object[] keys = map.keySet().toArray();
@@ -164,47 +178,31 @@ public class ManagementMenu implements ActionListener, ItemListener {
         return map.get(key);
     }
 
-    private Object getObj(String obj_name, String class_name) {
-        System.out.println(obj_name);
-        Object certain_object = null;
-        List<String> var_names = Arrays.asList("free_label", "garbagers_label", "mechanics_label",
-                "garbagers_wrapper", "free_panel", "garbagers_panel");
-        List<Object> objects = Arrays.asList(free_label, garbagers_label, mechanics_label,
-                garbagers_wrapper, free_panel, garbagers_panel);
-        List<String> texts = Arrays.asList("Free: ", "Garbagers: ", "Mechanics: ", "Alchemists: ", "Flower pickers: ");
-        int i = 0;
-        if (obj_name != null && class_name == null) {
-            for (String s : texts) {
-                if (s.regionMatches(true, 0, obj_name, 0, 3)) {
-                    certain_object = s;
-                }
-            }
-        } else {
-            for (String s : var_names) {
-                if (s.equals(obj_name + class_name)) {
-                    certain_object = objects.get(i);
-                    System.out.println(s);
-                }
-                i++;
-            }
-        }
+    private ObjectsWrapper getObj(String key) {
+        System.out.println(key);
+        ObjectsWrapper certain_object = objects.get(key);
         System.out.println("ПОЛУЧАЕМ ОБЪЕКТ " + certain_object);
         return certain_object;
     }
 
     private void addToMainPanel(ArrayList<NewAndroid> list, String job, JPanel mainPanel) {
-        mainPanel.setLayout(getLayout());
+        mainPanel.setLayout(new MigLayout("fillx, insets 0, gapy 0, flowy, toptobottom"));
         for (NewAndroid girl : list) {
             if (girl.getJob().equals(job)) {
                 JPanel panel = new JPanel();
                 String[] data = {girl.getName(), girl.getInfo(), girl.getVersion()};
-                panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+                panel.setLayout(new MigLayout("fill, debug"));
                 panel.setBackground(Color.WHITE);
+                ImageIcon icon = new ImageIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource(
+                        "/image" + girl.getIconId() + ".png")));
+                JLabel iconLabel = new JLabel(icon);
+                panel.add(iconLabel, "growx");
                 for (String s : data) {
                     JLabel label = new JLabel(s);
-                    panel.add(label);
+                    label.setFont(new Font("Serif", Font.BOLD, 18));
+                    panel.add(label, "split 3, flowy, growx");
                 }
-                mainPanel.add(panel, getCons());
+                mainPanel.add(panel, "growx");
                 getCheckBox(panel, girl);
                 all.put(panel, girl);
             }
@@ -215,6 +213,7 @@ public class ManagementMenu implements ActionListener, ItemListener {
 
     private void getCheckBox(JPanel panel, NewAndroid girl) {
         JCheckBox checkBox = new JCheckBox();
+        checkBox.setOpaque(false);
         checkBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 checkList.put(panel, girl);
@@ -235,18 +234,18 @@ public class ManagementMenu implements ActionListener, ItemListener {
             System.out.println(checkList.size());
 
         });
-        panel.add(checkBox);
+        panel.add(checkBox, "center, growx");
     }
 
-    private void resetPanels(JPanel toMainPanel, NewAndroid random_girl) {
+    private void resetPanels(JPanel toMainPanel, NewAndroid randomGirl) {
         Map<JPanel, NewAndroid> map;
-        if (random_girl != null) {
+        if (randomGirl != null) {
             map = all;
         } else {
             map = checkList;
         }
         for (Map.Entry<JPanel, NewAndroid> pair : map.entrySet()) {
-            if (map == all && pair.getValue() != random_girl) {
+            if (map == all && pair.getValue() != randomGirl) {
                 continue;
             }
             JPanel child = pair.getKey();
@@ -254,27 +253,8 @@ public class ManagementMenu implements ActionListener, ItemListener {
             parent.remove(child);
             parent.revalidate();
             parent.repaint();
-            toMainPanel.add(child, getCons());
+            toMainPanel.add(child, "growx");
         }
-    }
-
-    private GridBagConstraints getCons() {
-        GridBagConstraints cons = new GridBagConstraints();
-        cons.weightx = 1;
-        cons.anchor = GridBagConstraints.NORTHWEST;
-        cons.gridwidth = GridBagConstraints.REMAINDER;
-        cons.fill = GridBagConstraints.HORIZONTAL;
-        cons.insets = new Insets(0, 0, 0, 0);
-        return cons;
-    }
-
-    private GridBagLayout getLayout() {
-        GridBagLayout gridBagLayout = new GridBagLayout();
-        gridBagLayout.rowHeights = new int[]{0, 0, 0, 0};
-        gridBagLayout.rowWeights = new double[]{0.0, 0.0, 1.0, 1.0};
-        gridBagLayout.columnWidths = new int[]{0, 0, 0, 0};
-        gridBagLayout.columnWeights = new double[]{0.0, 0.0, 1.0, 1.0};
-        return gridBagLayout;
     }
 
     private JMenu getMenuBarMenu(JMenuItem item) {
@@ -306,19 +286,19 @@ public class ManagementMenu implements ActionListener, ItemListener {
                 System.out.println("Нанимаем рандомом");
                 girl = randomName(all);
                 changeWorkStatus(toJob, false, girl);
-                resetPanels((JPanel) getObj(toJob, "_panel"), girl);
+                resetPanels(getObj(toJob).getMainPanel(), girl);
                 break;
             case "Dismiss 1 from":
                 System.out.println("Увольняем рандомом");
                 girl = randomName(all);
                 changeWorkStatus("free", true, girl);
-                resetPanels(free_panel, girl);
+                resetPanels(getObj("free").getMainPanel(), girl);
                 break;
             case "Hire selected":
                 for (Map.Entry<JPanel, NewAndroid> pair : checkList.entrySet()) {
                     girl = pair.getValue();
                     changeWorkStatus(toJob, false, girl);
-                    resetPanels((JPanel) getObj(toJob, "_panel"), girl);
+                    resetPanels(getObj(toJob).getMainPanel(), girl);
                     System.out.println("Убираем ручками");
                 }
                 break;
