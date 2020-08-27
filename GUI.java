@@ -5,10 +5,7 @@ import net.miginfocom.swing.MigLayout;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -19,22 +16,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class Task implements ComponentListener {
+public class GUI implements ComponentListener {
+    JPanel backgroundMainPanel;
+    JLayeredPane mainContainer;
     JLabel icon, brokenGeneratorLabel, helperName, energyCount;
     JButton doll;
     BufferedImage helper_icon, lain, rozen;
-    Map <String, ObjectsWrapper> workers;
+    Map<String, ObjectsWrapper> workers;
     FileManage fileManage;
     Lists data;
     WorkProceeding work;
     int helperIconId, energy;
 
     public static void main(String[] args) {
-        new Task();
+        new GUI();
     }
 
-    public Task() {
+    public GUI() {
         fileManage = new FileManage();
+        work = new WorkProceeding();
         data = Lists.getInstance();
         workers = new HashMap<>();
         helperName = new JLabel();
@@ -63,30 +63,32 @@ public class Task implements ComponentListener {
         } else {
             data.androids = (ArrayList<NewAndroid>) (Object) fileManage.objectsLoad(androidPath);
             //load energy generators arraylist
-            data.resources = (Map<String, Integer>) (Object)fileManage.mapLoad(resourcesPath);
+            data.resources = (Map<String, Integer>) (Object) fileManage.mapLoad(resourcesPath);
         }
         //Инициализация workers map
         Table<String, String, Long> table = ImmutableTable.<String, String, Long>builder()
                 .put("free", "", (long) 0)
-                .put("gardener", "flowers", (long) 5000)
-                .put("garbager", "garbage", (long) 5000).build();
+                .put("gardeners", "flowers", (long) 5000)
+                .put("garbagers", "garbage", (long) 5000).build();
 
         for (Table.Cell<String, String, Long> pair : table.cellSet()) {
             String key, textWorker;
             key = textWorker = pair.getRowKey();
             String value = pair.getColumnKey();
+            Long timeTick = pair.getValue();
             ObjectsWrapper objWrapper = new ObjectsWrapper();
 
-            if (!key.equals("free")){
+            assert key != null;
+            if (!key.equals("free")) {
+                assert value != null;
                 String finalValue = addCapitalLetter(value) + ": ";
-                objWrapper.timerSet(value, pair.getValue(),
-                        ()-> work.pickItem(data.getJobs(key), finalValue), false);
-                textWorker += "s";
+                objWrapper.timerSet(finalValue, timeTick,
+                        () -> work.pickItem(data.getJobs(key), value), false);
                 data.resources.putIfAbsent(value, 0);
                 objWrapper.getItemProduced().setText(finalValue + data.getResource(value));
             }
             textWorker = addCapitalLetter(textWorker) + ": ";
-            objWrapper.build(textWorker);
+            objWrapper.workerSet(textWorker);
             int workerCount = data.getJobs(key);
             objWrapper.getAndroidWorker().setText(textWorker + workerCount);
             workers.put(key, objWrapper);
@@ -95,13 +97,12 @@ public class Task implements ComponentListener {
                 timerWrapper.timerStart();
             }
         }
-
         NewAndroid helper = data.androids.get(0);
         helperName.setText(helper.getName());
         helperIconId = helper.getIconId();
         data.resources.put("energy", energy);
-        TimerWrapper energyWrapper = new TimerWrapper(energyCount,  "Now energy: ",
-                10000, ()-> data.eatEnergy(), true);
+        TimerWrapper energyWrapper = new TimerWrapper(energyCount, "Now energy: ",
+                10000, () -> data.eatEnergy(), true);
         energyWrapper.timerStart();
     }
 
@@ -117,13 +118,15 @@ public class Task implements ComponentListener {
         //все остальные jlabel: 0
         //все arraylists, hashmaps: null
         //рестартнуть таймер у энергии
+        //workers = null;
+        //init() - ?
     }
 
     private void disableActivity() {
         //все таймеры отключаются, если энергия на нуле
     }
 
-    private String addCapitalLetter(String str){
+    private String addCapitalLetter(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 
@@ -173,7 +176,10 @@ public class Task implements ComponentListener {
             setExtendedState(JFrame.MAXIMIZED_BOTH);
             setMinimumSize(new Dimension(200, 200));
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            setContentPane(new MainPanel());
+            backgroundMainPanel = new MainPanel();
+            mainContainer = new JLayeredPane();
+            mainContainer.add(backgroundMainPanel, 1, 0);
+            setContentPane(mainContainer);
             addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosing(WindowEvent windowEvent) {
@@ -186,6 +192,14 @@ public class Task implements ComponentListener {
                         fileManage.deleteDirectory(new File("C:/Users/User/Documents/NyanData"));
                     }
                     System.exit(0);
+                }
+            });
+            addComponentListener(new ComponentAdapter() {
+
+                @Override
+                public void componentResized(ComponentEvent e) {
+
+                    SwingUtilities.invokeLater(() -> backgroundMainPanel.setSize(getWidth(), getHeight()));
                 }
             });
             pack();
@@ -220,7 +234,7 @@ public class Task implements ComponentListener {
             add(icon, "top, split 2, flowx, grow, gapx 0, wmin 0, hmin 0," + " wmax " + getW(helper_icon) + "," +
                     " hmax " + getH(helper_icon));
             icon.setName("Helper");
-            icon.addComponentListener(Task.this);
+            icon.addComponentListener(GUI.this);
             JPanel miniPanel = new JPanel();
             miniPanel.setLayout(new MigLayout("fill, flowy"));
             miniPanel.setOpaque(false);
@@ -233,7 +247,7 @@ public class Task implements ComponentListener {
             doll.setText("READY TO MAKE ANDROIDS");
             doll.setHorizontalTextPosition(SwingConstants.CENTER);
             add(doll, "grow, wmin 0, hmin 0, top," + " wmax " + getW(rozen) + "," + " hmax " + getH(rozen));
-            doll.addComponentListener(Task.this);
+            doll.addComponentListener(GUI.this);
 
         }
     }
@@ -243,8 +257,12 @@ public class Task implements ComponentListener {
             new JPanel();
             setOpaque(false);
             setLayout(new MigLayout("flowy"));
-            add(new JButton("Manage androids&pods"));
-
+            JButton manage = new JButton("Manage androids&pods");
+            manage.addActionListener(e -> {
+                new ManagementMenu(workers, mainContainer, manage);
+                manage.setEnabled(false);
+        });
+            add(manage);
             //List<String> pods = Arrays.asList("4", "5", "7", "3", "0", "9");
             //int i = 0;
             for (Map.Entry<String, ObjectsWrapper> pair : workers.entrySet()) {
@@ -271,7 +289,7 @@ public class Task implements ComponentListener {
             brokenGeneratorLabel = new JLabel();
             brokenGeneratorLabel.setName("Generator");
             brokenGeneratorLabel.setIcon(new ImageIcon(lain));
-            brokenGeneratorLabel.addComponentListener(Task.this);
+            brokenGeneratorLabel.addComponentListener(GUI.this);
             add(brokenGeneratorLabel, "grow, wmin 0, hmin 0," + " wmax " + getW(lain) + "," +
                     " hmax " + getH(lain));
             add(new JLabel("Осталось немного"));
@@ -300,8 +318,8 @@ public class Task implements ComponentListener {
             JPanel panel = new JPanel();
             panel.setBackground(Color.WHITE);
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-            for (Map.Entry <String, ObjectsWrapper> pair : workers.entrySet()){
-                if(pair.getKey().equals("free")){
+            for (Map.Entry<String, ObjectsWrapper> pair : workers.entrySet()) {
+                if (pair.getKey().equals("free")) {
                     continue;
                 }
                 JLabel label = pair.getValue().getItemProduced();
