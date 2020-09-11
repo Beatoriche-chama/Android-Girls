@@ -1,38 +1,46 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class WorkProceeding {
     Lists data = Lists.getInstance();
 
-    public int pickItem(int neetCount, String resource){
-        int flowers_picked = neetCount;
-        int resourceSum = data.getResource(resource);
-        resourceSum += flowers_picked;
-        data.setResource(resourceSum, resource);
-        return resourceSum;
+    public ArrayList<ResourcesWrapper> giveItem(int workerCount, String resource) {
+        ResourcesWrapper res = data.getRes(resource);
+        int resourceSum = res.getValue() + workerCount;
+        res.setValue(resourceSum);
+        ArrayList <ResourcesWrapper> resources = new ArrayList<>();
+        resources.add(res);
+        return resources;
     }
 
-    public int checkMe(int neetCount, String resource){
-        System.out.println(neetCount);
-        System.out.println(resource);
-        return neetCount;
-    }
-
-    public int converseItem(int neetCount, String material, String product){
-        int conversedSum = data.getResource(product);
-        int source = data.getResource(material);
-        if (source < 1) {
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+    public ArrayList<ResourcesWrapper> converseItem(String product) {
+        ArrayList<ResourcesWrapper> resourcesList = new ArrayList<>();
+        //System.out.println(product + " ПРОДУКТЫ НА КОНВЕРСИЮ");
+        String [] s = product.split(" ");
+        for(String res : s){
+            ResourcesWrapper productObj = data.getRes(res);
+            List<ResourcesWrapper> sourceObjects = productObj.getSource();
+            if (!data.isReadyToCraft(sourceObjects)) {
+                System.out.println("Мало исходного ресурса");
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                continue;
+            } else {
+                int workerNumber = data.getWorkersNumber(res, true);
+                productObj.setValue(productObj.getValue() + workerNumber);
+                for (ResourcesWrapper sourceRes : sourceObjects) {
+                    sourceRes.setValue(sourceRes.getValue() - workerNumber);
+                }
             }
-            System.out.println("Мало исходного ресурса");
+            resourcesList.add(productObj);
         }
-        else {
-            int newConvercedItem = neetCount;
-            conversedSum += newConvercedItem;
-            source = source - newConvercedItem;
-            data.setResource(conversedSum, product);
-            data.setResource(source, material);
-        }
-        return conversedSum;
+
+        return resourcesList;
     }
+
+
+
 }
