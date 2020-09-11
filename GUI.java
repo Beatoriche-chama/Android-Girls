@@ -1,5 +1,3 @@
-import com.google.common.collect.ImmutableTable;
-import com.google.common.collect.Table;
 import net.miginfocom.swing.MigLayout;
 
 import javax.imageio.ImageIO;
@@ -12,8 +10,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class GUI implements ComponentListener {
@@ -22,11 +20,16 @@ public class GUI implements ComponentListener {
     JLabel icon, brokenGeneratorLabel, helperName, energyCount;
     JButton doll;
     BufferedImage helper_icon, lain, rozen;
-    Map<String, ObjectsWrapper> workers;
     FileManage fileManage;
     Lists data;
+    List<JobWrapper> jobList;
+    List<ResourcesWrapper> resources;
     WorkProceeding work;
-    int helperIconId, energy;
+    int helperIconId;
+    String directory = "C:/Users/User/Documents/NyanData";
+    String androidPath = "C:/Users/User/Documents/NyanData/Androids";
+    String generatorPath = "C:/Users/User/Documents/NyanData/EnergyGenerators";
+    String resourcesPath = "C:/Users/User/Documents/NyanData/Resources";
 
     public static void main(String[] args) {
         new GUI();
@@ -36,9 +39,6 @@ public class GUI implements ComponentListener {
         fileManage = new FileManage();
         work = new WorkProceeding();
         data = Lists.getInstance();
-        workers = new HashMap<>();
-        helperName = new JLabel();
-        energyCount = new JLabel();
         try {
             init();
             helper_icon = ImageIO.read(this.getClass().getResource("/image" + helperIconId + ".png"));
@@ -51,75 +51,107 @@ public class GUI implements ComponentListener {
     }
 
     private void init() throws IOException, ClassNotFoundException {
-        String directory = "C:/Users/User/Documents/NyanData";
-        String androidPath = "C:/Users/User/Documents/NyanData/Androids";
-        //String generatorPath = "C:/Users/User/Documents/NyanData/EnergyGenerators";
-        String resourcesPath = "C:/Users/User/Documents/NyanData/Resources";
+        helperName = new JLabel();
+        energyCount = new JLabel();
         if (!Files.isDirectory(Paths.get(directory))) {
             new File(directory);
             new NewAndroid(true);
+            new NewAndroid(false);
+            new NewAndroid(false);
+
             //new EnergyGenerator(true);
-            energy = 400;
+            //add energy to resources List
+
         } else {
             data.androids = (ArrayList<NewAndroid>) (Object) fileManage.objectsLoad(androidPath);
             //load energy generators arraylist
-            data.resources = (Map<String, Integer>) (Object) fileManage.mapLoad(resourcesPath);
+            //data.resources = (Map<String, Integer>) (Object) fileManage.mapLoad(resourcesPath);
         }
-        //Инициализация workers map
-        Table<String, String, Long> table = ImmutableTable.<String, String, Long>builder()
-                .put("free", "", (long) 0)
-                .put("gardeners", "flowers", (long) 5000)
-                .put("garbagers", "garbage", (long) 5000).build();
+        //мусор, цветы - абстрактные ресурсы c рандомными выпадениями штук
+        //механики и алхимики учатся экстрактить новые вещи из штук
+        //JobWrapper - хранятся изученные ресурсы ("нептуний", "серебро")
+        //ресурсы подгружаются как объекты в arraylist (внутри Lists)
 
-        for (Table.Cell<String, String, Long> pair : table.cellSet()) {
+        //подгружать ресурсы
+        //если нет файла, то ничего не инициализировать
+        //минимальные ресурсы (?): мусор, детали, цветы, топливо
+        //при открытии технологии появляется новый ресурс
+
+        resources = Arrays.asList(
+                new ResourcesWrapper("energy").setResLabel(energyCount),
+                new ResourcesWrapper("garbage"),
+                new ResourcesWrapper("cpu"),
+                new ResourcesWrapper("motherboards"),
+                new ResourcesWrapper("flowers")
+        );
+        data.res = resources;
+        resources.get(0).setValue(400);
+        resources.get(1).setValue(40);
+        resources.get(2).setSource("garbage");
+        resources.get(3).setSource("garbage");
+
+        resources.forEach((resource) -> {
+            String itemText = resource.getLabelText();
+            resource.getResLabel().setText(itemText + data.getResValue(resource.getKey()));
+        });
+
+        jobList = Arrays.asList(
+                new JobWrapper("free"),
+                new JobWrapper("garbagers").setWorkerCondition("garbage", 5000, false),
+                new JobWrapper("mechanics")
+                        .setWorkerCondition(null, 15000, true)
+                .setProducts("motherboards cpu"),
+                new JobWrapper("gardeners").setWorkerCondition("flowers", 5000, false)
+        );
+
+        jobList.forEach((jobWrapper) -> {
             String key, textWorker;
-            key = textWorker = pair.getRowKey();
-            String value = pair.getColumnKey();
-            Long timeTick = pair.getValue();
-            ObjectsWrapper objWrapper = new ObjectsWrapper();
+            key = jobWrapper.getKey();
+            textWorker = jobWrapper.getWorkerText();
+            int workerCount = data.getWorkersNumber(key, false);
+            jobWrapper.getAndroidWorker().setText(textWorker + workerCount);
 
-            assert key != null;
             if (!key.equals("free")) {
-                assert value != null;
-                String finalValue = addCapitalLetter(value) + ": ";
-                objWrapper.timerSet(finalValue, timeTick,
-                        () -> work.pickItem(data.getJobs(key), value), false);
-                data.resources.putIfAbsent(value, 0);
-                objWrapper.getItemProduced().setText(finalValue + data.getResource(value));
+                if (jobWrapper.getIsRecyclist()) {
+                    jobWrapper.setTimer(
+                            () -> work.converseItem(jobWrapper.getResourceKey()));
+                } else {
+                    jobWrapper.setTimer(
+                            () -> work.giveItem(data.getWorkersNumber(key, false),
+                                    jobWrapper.getResourceKey()));
+                }
+                TimerWrapper timerWrapper = jobWrapper.getTimerWrapper();
+                if (workerCount > 0) {
+                    timerWrapper.timerStart();
+                }
             }
-            textWorker = addCapitalLetter(textWorker) + ": ";
-            objWrapper.workerSet(textWorker);
-            int workerCount = data.getJobs(key);
-            objWrapper.getAndroidWorker().setText(textWorker + workerCount);
-            workers.put(key, objWrapper);
-            TimerWrapper timerWrapper = objWrapper.getTimerWrapper();
-            if (workerCount > 0 && timerWrapper != null) {
-                timerWrapper.timerStart();
-            }
-        }
+        });
+
         NewAndroid helper = data.androids.get(0);
         helperName.setText(helper.getName());
         helperIconId = helper.getIconId();
-        data.resources.put("energy", energy);
-        TimerWrapper energyWrapper = new TimerWrapper(energyCount, "Now energy: ",
-                10000, () -> data.eatEnergy(), true);
+
+        TimerWrapper energyWrapper = new TimerWrapper(
+                ()-> work.giveItem(- 5 * data.androids.size(),"energy"), 10000);
         energyWrapper.timerStart();
     }
 
-    private void saveData() {
-        //fileManage.objectsSave(); -> arraylists
-        //fileManage.mapSave(); -> resources
+    private void saveData() throws IOException {
+        fileManage.objectsSave(androidPath, data.androids);
+        fileManage.objectsSave(generatorPath, data.generators);
+        //сохранить ресурсы
     }
 
     private void restartGame() {
-        //закрыть все модальные jdialog, если они вызваны
+        //закрыть все внутренние фреймы, если они вызваны
         //Free: 1
         //энергия снова на максимуме
         //все остальные jlabel: 0
-        //все arraylists, hashmaps: null
         //рестартнуть таймер у энергии
-        //workers = null;
-        //init() - ?
+
+        //delete directory and init()?
+        //или итерация workers (set Jlabels texts to 0 - ?)
+        //+ чистка arraylists и map?
     }
 
     private void disableActivity() {
@@ -177,8 +209,8 @@ public class GUI implements ComponentListener {
             setMinimumSize(new Dimension(200, 200));
             setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             backgroundMainPanel = new MainPanel();
-            mainContainer = new JLayeredPane();
-            mainContainer.add(backgroundMainPanel, 1, 0);
+            mainContainer = new JDesktopPane();
+            mainContainer.add(backgroundMainPanel, JLayeredPane.DEFAULT_LAYER);
             setContentPane(mainContainer);
             addWindowListener(new WindowAdapter() {
                 @Override
@@ -190,6 +222,12 @@ public class GUI implements ComponentListener {
                             JOptionPane.YES_NO_OPTION,
                             JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                         fileManage.deleteDirectory(new File("C:/Users/User/Documents/NyanData"));
+                    } else {
+                        try {
+                            saveData();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                     System.exit(0);
                 }
@@ -202,6 +240,9 @@ public class GUI implements ComponentListener {
                     SwingUtilities.invokeLater(() -> backgroundMainPanel.setSize(getWidth(), getHeight()));
                 }
             });
+            setTitle("Android daughters~♡");
+            ImageIcon icon = new ImageIcon(getClass().getResource("/frame.jpg"));
+            setIconImage(icon.getImage());
             pack();
             setVisible(true);
         }
@@ -210,7 +251,7 @@ public class GUI implements ComponentListener {
     class MainPanel extends JPanel {
         MainPanel() {
             new JPanel();
-            setLayout(new MigLayout("fill, debug"));
+            setLayout(new MigLayout("fill"));
             add(new HelperPanel(), "grow");
             add(new JobPanel(), "top, split 2, flowy, sgx[nya]");
             add(new ResourcesPanel(), "sgx[nya]");
@@ -227,7 +268,7 @@ public class GUI implements ComponentListener {
     class HelperPanel extends JPanel {
         HelperPanel() {
             new JPanel();
-            setLayout(new MigLayout("debug, fill"));
+            setLayout(new MigLayout("fill"));
             setOpaque(false);
             icon = new JLabel();
             icon.setIcon(new ImageIcon(helper_icon));
@@ -259,18 +300,11 @@ public class GUI implements ComponentListener {
             setLayout(new MigLayout("flowy"));
             JButton manage = new JButton("Manage androids&pods");
             manage.addActionListener(e -> {
-                new ManagementMenu(workers, mainContainer, manage);
+                new ManagementMenu(jobList, mainContainer, manage);
                 manage.setEnabled(false);
-        });
+            });
             add(manage);
-            //List<String> pods = Arrays.asList("4", "5", "7", "3", "0", "9");
-            //int i = 0;
-            for (Map.Entry<String, ObjectsWrapper> pair : workers.entrySet()) {
-                //, "split 2, flowx" -> for workerLabel
-                add(pair.getValue().getAndroidWorker());
-                //add(new JLabel(", pods: " + pods.get(i)));
-                //i++;
-            }
+            jobList.forEach((job)-> add(job.getAndroidWorker()));
             add(new JButton("Technology Tree"));
         }
 
@@ -318,14 +352,14 @@ public class GUI implements ComponentListener {
             JPanel panel = new JPanel();
             panel.setBackground(Color.WHITE);
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-            for (Map.Entry<String, ObjectsWrapper> pair : workers.entrySet()) {
-                if (pair.getKey().equals("free")) {
-                    continue;
-                }
-                JLabel label = pair.getValue().getItemProduced();
-                label.setFont(new Font("Serif", Font.BOLD, 16));
-                panel.add(label);
-            }
+            resources.stream()
+                    .filter((res)-> !res.getKey().equals("energy"))
+                    .forEach((res)-> {
+                        JLabel label = res.getResLabel();
+                        label.setFont(new Font("Serif", Font.BOLD, 16));
+                        panel.add(label);
+                    });
+
             setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
             setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
             setLayout(new ScrollPaneLayout());
@@ -349,52 +383,4 @@ public class GUI implements ComponentListener {
     private String getH(BufferedImage image) {
         return String.valueOf(image.getHeight());
     }
-    /*
-    public int energySupplier() {
-        int energy_now = energyGenerator.eatEnergy();
-        int details = m.getDetails();
-        details_left.setText((30 - details) + " details left to gather~");
-        if (details == 30) {
-            details_left.setText("");
-            win();
-            energyGenerator.giveEnergy();
-        }
-        if (energy_now < 1) {
-            energy_count.setText("Energy is 0. Do Androids Dream of Electric Sheep?");
-            try {
-                badEndmessage();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return energy_now;
-    }
-
-    public void win() {
-        ImageIcon icon = new ImageIcon(getClass().getResource("/goodbye.png"));
-        UIManager.put("OptionPane.okButtonText", "All hail technocracy~");
-        JOptionPane.showConfirmDialog(frame, "Теперь девочка обязательно выживет!", "Спасибо, хозяин",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, icon);
-    }
-
-    public void badEndmessage() throws IOException {
-        System.out.println("Конец игры.");
-        UIManager.put("OptionPane.yesButtonText", "Помочь мечте андроидов сбыться в новой реальности");
-        UIManager.put("OptionPane.noButtonText", "Оставить этот умирающий мир");
-        int result = JOptionPane.showConfirmDialog(null,
-                "Няша, твоя рабыня навеки застыла без энергии." +
-                        " Сейчас ее программное обеспечение связи с параллельным миром отключится.",
-                "Конец реальности", JOptionPane.YES_NO_OPTION);
-        if (result == JOptionPane.YES_OPTION) {
-            restart();
-            startGame();
-        }
-        if (result == JOptionPane.NO_OPTION) {
-            fileManage.deleteDirectory(new File("C:/Users/User/Documents/NyanData"));
-            System.exit(0);
-        }
-    }
-     */
-
-
 }
