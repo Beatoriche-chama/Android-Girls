@@ -3,6 +3,7 @@ import net.miginfocom.swing.MigLayout;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import javax.swing.event.MenuEvent;
@@ -26,10 +27,10 @@ public class ManagementMenu implements ActionListener {
     JLayeredPane jDesktopPane;
     JButton manageButton;
     JMenuBar menuBar;
-    Map<String, ObjectsWrapper> objects;
+    List<JobWrapper> objects;
     JMenu hireAutoMenu, dismissAutoMenu, hireMenu, dismissMenu;
 
-    public ManagementMenu(Map<String, ObjectsWrapper> objects, JLayeredPane jDesktopPane, JButton manageButton) {
+    public ManagementMenu(List<JobWrapper> objects, JLayeredPane jDesktopPane, JButton manageButton) {
         this.objects = objects;
         this.jDesktopPane = jDesktopPane;
         this.manageButton = manageButton;
@@ -52,7 +53,7 @@ public class ManagementMenu implements ActionListener {
 
             @Override
             public void menuSelected(MenuEvent e) {
-                checkList.forEach((key, value) -> changeWorkStatus("free", true, key, value));
+                checkList.forEach((key, value) -> changeWorkStatus("free", key, value));
             }
 
             @Override
@@ -69,10 +70,11 @@ public class ManagementMenu implements ActionListener {
         jMenus = Arrays.asList(dismissAutoMenu, hireAutoMenu, hireMenu);
         Map<String, Integer> menuItemMap = new HashMap<>();
         menuItemMap.put("garbagers", 0);
-        menuItemMap.put("pick cpu", 0);
+        menuItemMap.put("gardeners", 1);
         menuItemMap.put("in wastelands", 1);
         menuItemMap.put("in greenhouse", 1);
-        menuItemMap.put("make details", 2);
+        menuItemMap.put("motherboards", 2);
+        menuItemMap.put("cpu", 2);
 
         jMenus.forEach(jMenu -> {
             menuBar.add(jMenu);
@@ -95,10 +97,11 @@ public class ManagementMenu implements ActionListener {
 
     public JInternalFrame createManageMenu(JMenuBar jMenuBar) {
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-        objects.forEach((key, wrapper)->{
-            wrapper.panelSet();
-            JPanel mainPanel = wrapper.getMainPanel();
-            addToMainPanel(lists.androids, key, mainPanel);
+        objects.forEach((wrapper) -> {
+            //String key = wrapper.getKey();
+            //JPanel mainPanel = wrapper.getMainPanel();
+
+            JPanel mainPanel = addToMainPanel(lists.androids, wrapper);
             JScrollPane scrollPane = new JScrollPane(mainPanel);
             tabbedPane.add(scrollPane, wrapper.getWorkerText());
         });
@@ -126,63 +129,139 @@ public class ManagementMenu implements ActionListener {
         return jInternalFrame;
     }
 
-    private void changeWorkStatus(String toJob, boolean isDismiss, NewAndroid girl, JPanel panel) {
+    private void changeWorkStatus(String toJob, NewAndroid girl, JPanel panel) {
         String exWorkKey = girl.getJob();
-        ObjectsWrapper objToJob = getObj(toJob);
-        ObjectsWrapper objFromJob = getObj(exWorkKey);
+        JobWrapper objToJob = getObj(toJob);
+        JobWrapper objFromJob = getObj(exWorkKey);
+        String newWorkKey = objToJob.getKey();
+
         TimerWrapper wrapperTo = objToJob.getTimerWrapper();
         TimerWrapper wrapperFrom = objFromJob.getTimerWrapper();
         JLabel exwork = objFromJob.getAndroidWorker();
         String exworkText = objFromJob.getWorkerText();
         JLabel newWork = objToJob.getAndroidWorker();
         String newWorkText = objToJob.getWorkerText();
-        girl.setJob(toJob);
-        if (wrapperTo != null || wrapperFrom != null) {
-            if (!isDismiss && !wrapperTo.getStatus()) {
-                wrapperTo.timerStart();
-            }
 
-            if (isDismiss && lists.getJobs(exWorkKey) < 1) {
-                wrapperFrom.timerStop();
+        girl.setJob(newWorkKey);
+
+        if ((objToJob.getIsRecyclist() | objFromJob.getIsRecyclist())) {
+
+            boolean isNotTheSame = girl.getTask() != null && !girl.getTask().equals(toJob);
+            System.out.println(isNotTheSame);
+                if (objFromJob.getIsRecyclist()) {
+                    if(lists.getWorkersNumber(girl.getTask(), true) == 1
+                            && isNotTheSame){
+                        System.out.println("НИКОГО НЕ ОСТАНЕТСЯ, УБЕРЕМ РЕСУРС!");
+                        objFromJob.removeResource(girl.getTask());
+                    }
+                    girl.setTask(null);
+                    resetPanels(getObj(newWorkKey).getMainPanel(), panel);
+                }
+
+                if (objToJob.getIsRecyclist()) {
+                    System.out.println("Добавим задачу андроиду");
+                    System.out.println("А задач-работников вот столько! " +
+                            lists.getWorkersNumber(toJob, true));
+
+                    girl.setTask(toJob);
+
+                    if(lists.getWorkersNumber(toJob, true) == 1
+                            && (isNotTheSame | !objFromJob.getIsRecyclist())){
+
+                        System.out.println("НИКОГО НЕТ, ДОБАВИМ РЕСУРС!");
+                        objToJob.addResource(toJob);
+                    }
+                    resetPanels(lists.getRes(toJob).getProductPanel(), panel);
+                }
+
+        } else{
+            resetPanels(getObj(newWorkKey).getMainPanel(), panel);
+        }
+
+        if (wrapperTo != null && !wrapperTo.getStatus()) {
+            System.out.println("Началась работа " + newWorkKey +
+                    " с задачами: " + objToJob.getResourceKey());
+            wrapperTo.timerStart();
+        }
+
+        if (wrapperFrom != null && wrapperFrom.getStatus() && lists.getWorkersNumber(exWorkKey, false) < 1) {
+            System.out.println("Завершена работа " + exWorkKey);
+            wrapperFrom.timerStop();
+        }
+
+        hireAutoMenu.setEnabled(lists.getWorkersNumber("free", false) != 0);
+        exwork.setText(exworkText + lists.getWorkersNumber(exWorkKey, false));
+        newWork.setText(newWorkText + lists.getWorkersNumber(newWorkKey, false));
+
+    }
+
+    private JobWrapper getObj(String key) {
+        System.out.println(key);
+        JobWrapper object = null;
+        for (JobWrapper obj : objects) {
+            if (obj.getKey().equals(key) |
+                    (obj.getProductsList() != null && obj.getProductsList().contains(key))) {
+                object = obj;
             }
         }
-        hireAutoMenu.setEnabled(lists.getJobs("free") != 0);
-        exwork.setText(exworkText + lists.getJobs(exWorkKey));
-        newWork.setText(newWorkText + lists.getJobs(toJob));
-        resetPanels(getObj(toJob).getMainPanel(), panel);
+        return object;
     }
 
-    private ObjectsWrapper getObj(String key) {
-        System.out.println(key);
-        ObjectsWrapper certain_object = objects.get(key);
-        System.out.println("ПОЛУЧАЕМ ОБЪЕКТ " + certain_object);
-        return certain_object;
-    }
+    private JPanel addToMainPanel(ArrayList<NewAndroid> list, JobWrapper wrapper) {
+        JPanel mainPanel = wrapper.getMainPanel();
+        MigLayout layout = new MigLayout("fillx, insets 0, gapy 0, flowy, toptobottom");
+        mainPanel.setLayout(layout);
 
-    private void addToMainPanel(ArrayList<NewAndroid> list, String job, JPanel mainPanel) {
-        mainPanel.setLayout(new MigLayout("fillx, insets 0, gapy 0, flowy, toptobottom"));
-        for (NewAndroid girl : list) {
-            if (girl.getJob().equals(job)) {
-                JPanel panel = new JPanel();
-                String[] data = {girl.getName(), girl.getInfo(), girl.getVersion()};
-                panel.setLayout(new MigLayout("fill"));
-                panel.setBackground(Color.WHITE);
-                ImageIcon icon = new ImageIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource(
-                        "/image" + girl.getIconId() + ".png")));
-                JLabel iconLabel = new JLabel(icon);
-                panel.add(iconLabel, "growx");
-                for (String s : data) {
-                    JLabel label = new JLabel(s);
-                    label.setFont(new Font("Serif", Font.BOLD, 18));
-                    panel.add(label, "split 3, flowy, growx");
+        if (wrapper.getProductsList() != null) {
+            String[] productList = wrapper.getProductsList().split(" ");
+            for (String productName : productList) {
+                System.out.println(productName + " PRODUCT NAME");
+                Border taskBorder = BorderFactory.createTitledBorder(productName.toUpperCase());
+                JPanel productPanel = lists.getRes(productName).getProductPanel();
+                //если перестроить под JList, то у каждого
+                //продукта есть свой Jlist с girlPanels
+
+                productPanel.setBorder(taskBorder);
+                productPanel.setLayout(new MigLayout("fillx, insets 0, gapy 0, flowy, toptobottom"));
+                for (NewAndroid girl : list) {
+                    if (girl.getTask() != null && girl.getTask().equals(productName)) {
+                        System.out.println(girl.getName() + " GIRL NAME " +
+                                girl.getInfo() + " GIRL INFO");
+                        addGirlPanel(girl, productPanel);
+                    }
                 }
-                mainPanel.add(panel, "growx");
-                getCheckBox(panel, girl);
-                all.put(girl, panel);
+                mainPanel.add(productPanel, "grow");
             }
-
+        } else {
+            for (NewAndroid girl : list) {
+                if (girl.getJob().equals(wrapper.getKey())) {
+                    addGirlPanel(girl, mainPanel);
+                }
+            }
         }
         mainPanel.setBackground(Color.LIGHT_GRAY);
+        return mainPanel;
+    }
+
+    private void addGirlPanel(NewAndroid girl, JPanel parentPanel) {
+        JPanel girlPanel = new JPanel();
+        String[] data = {girl.getName(), girl.getInfo(), girl.getVersion()};
+        girlPanel.setLayout(new MigLayout("fill"));
+        girlPanel.setBackground(Color.WHITE);
+        Border blackline = BorderFactory.createLineBorder(Color.black);
+        girlPanel.setBorder(blackline);
+        ImageIcon icon = new ImageIcon(Toolkit.getDefaultToolkit().getImage(getClass().getResource(
+                "/image" + girl.getIconId() + ".png")));
+        JLabel iconLabel = new JLabel(icon);
+        girlPanel.add(iconLabel, "growx");
+        for (String s : data) {
+            JLabel label = new JLabel(s);
+            label.setFont(new Font("Serif", Font.BOLD, 18));
+            girlPanel.add(label, "split 3, flowy, growx");
+        }
+        getCheckBox(girlPanel, girl);
+        all.put(girl, girlPanel);
+        parentPanel.add(girlPanel, "grow");
     }
 
     private void getCheckBox(JPanel panel, NewAndroid girl) {
@@ -207,14 +286,20 @@ public class ManagementMenu implements ActionListener {
                 hireAutoMenu.setVisible(false);
                 dismissAutoMenu.setVisible(false);
             }
-            System.out.println(checkList.size());
 
         });
         panel.add(checkBox, "center, growx");
     }
 
-    private Pair<NewAndroid, JPanel> randomName() {
-        NewAndroid randomGirl = lists.androids.get(new Random().nextInt(lists.androids.size()));
+    private Pair<NewAndroid, JPanel> randomName(String job) {
+        NewAndroid randomGirl = null;
+        for (NewAndroid girl : lists.androids) {
+            if (girl.getJob().equals(job)) {
+                randomGirl = girl;
+            } else if (girl.getTask() != null && girl.getTask().equals(job)) {
+                randomGirl = girl;
+            }
+        }
         return new Pair<>(randomGirl, all.get(randomGirl));
     }
 
@@ -244,22 +329,21 @@ public class ManagementMenu implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         JMenuItem jmi = (JMenuItem) e.getSource();
         JMenu mainMenu = getMenuBarMenu(jmi);
-        String toJob = jmi.getText();
+        String toJob, randomGirlJob;
+        toJob = randomGirlJob = jmi.getText();
         String menuText = mainMenu.getText();
-        boolean isDismiss;
-        if (menuText.contains("Hire")) {
-            isDismiss = false;
-        } else {
-            isDismiss = true;
+        if (menuText.contains("Dismiss")) {
             toJob = "free";
+        } else {
+            randomGirlJob = "free";
         }
 
         if (menuText.contains("1")) {
-            Pair<NewAndroid, JPanel> pair = randomName();
-            changeWorkStatus(toJob, isDismiss, pair.getKey(), pair.getValue());
+            Pair<NewAndroid, JPanel> pair = randomName(randomGirlJob);
+            changeWorkStatus(toJob, pair.getKey(), pair.getValue());
         } else {
             String finalToJob = toJob;
-            checkList.forEach((key, value) -> changeWorkStatus(finalToJob, isDismiss, key, value));
+            checkList.forEach((key, value) -> changeWorkStatus(finalToJob, key, value));
         }
     }
 }
