@@ -98,9 +98,6 @@ public class ManagementMenu implements ActionListener {
     public JInternalFrame createManageMenu(JMenuBar jMenuBar) {
         JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
         objects.forEach((wrapper) -> {
-            //String key = wrapper.getKey();
-            //JPanel mainPanel = wrapper.getMainPanel();
-
             JPanel mainPanel = addToMainPanel(lists.androids, wrapper);
             JScrollPane scrollPane = new JScrollPane(mainPanel);
             tabbedPane.add(scrollPane, wrapper.getWorkerText());
@@ -148,6 +145,7 @@ public class ManagementMenu implements ActionListener {
 
             boolean isNotTheSame = girl.getTask() != null && !girl.getTask().equals(toJob);
             System.out.println(isNotTheSame);
+            //
                 if (objFromJob.getIsRecyclist()) {
                     if(lists.getWorkersNumber(girl.getTask(), true) == 1
                             && isNotTheSame){
@@ -180,7 +178,7 @@ public class ManagementMenu implements ActionListener {
 
         if (wrapperTo != null && !wrapperTo.getStatus()) {
             System.out.println("Началась работа " + newWorkKey +
-                    " с задачами: " + objToJob.getResourceKey());
+                    " с ресурсами на сбор/переработку: " + objToJob.getResourceKey());
             wrapperTo.timerStart();
         }
 
@@ -211,7 +209,6 @@ public class ManagementMenu implements ActionListener {
         JPanel mainPanel = wrapper.getMainPanel();
         MigLayout layout = new MigLayout("fillx, insets 0, gapy 0, flowy, toptobottom");
         mainPanel.setLayout(layout);
-
         if (wrapper.getProductsList() != null) {
             String[] productList = wrapper.getProductsList().split(" ");
             for (String productName : productList) {
@@ -220,9 +217,12 @@ public class ManagementMenu implements ActionListener {
                 JPanel productPanel = lists.getRes(productName).getProductPanel();
                 //если перестроить под JList, то у каждого
                 //продукта есть свой Jlist с girlPanels
+                //jlist на панели
+
 
                 productPanel.setBorder(taskBorder);
                 productPanel.setLayout(new MigLayout("fillx, insets 0, gapy 0, flowy, toptobottom"));
+                createHideShowButton(productPanel);
                 for (NewAndroid girl : list) {
                     if (girl.getTask() != null && girl.getTask().equals(productName)) {
                         System.out.println(girl.getName() + " GIRL NAME " +
@@ -243,7 +243,28 @@ public class ManagementMenu implements ActionListener {
         return mainPanel;
     }
 
+    private void createHideShowButton(JPanel panel){
+        JButton hideShow = new JButton("Hide content");
+        final boolean[] isVisible = {true};
+        hideShow.addActionListener(e -> {
+            if (hideShow.getText().equals("Show content")) {
+                hideShow.setText("Hide content");
+            } else {
+                hideShow.setText("Show content");
+            }
+            isVisible[0] = !isVisible[0];
+            Component[] components = panel.getComponents();
+            for (Component component : components) {
+                if (component instanceof JButton) continue;
+                component.setVisible(isVisible[0]);
+            }
+        });
+        panel.add(hideShow);
+    }
+
     private void addGirlPanel(NewAndroid girl, JPanel parentPanel) {
+        //переделать под jlist
+
         JPanel girlPanel = new JPanel();
         String[] data = {girl.getName(), girl.getInfo(), girl.getVersion()};
         girlPanel.setLayout(new MigLayout("fill"));
@@ -261,7 +282,7 @@ public class ManagementMenu implements ActionListener {
         }
         getCheckBox(girlPanel, girl);
         all.put(girl, girlPanel);
-        parentPanel.add(girlPanel, "grow");
+        parentPanel.add(girlPanel, "grow, hidemode 1");
     }
 
     private void getCheckBox(JPanel panel, NewAndroid girl) {
@@ -308,7 +329,7 @@ public class ManagementMenu implements ActionListener {
         parent.remove(panelWithGirl);
         parent.revalidate();
         parent.repaint();
-        toMainPanel.add(panelWithGirl, "growx");
+        toMainPanel.add(panelWithGirl, "growx, hidemode 1");
     }
 
     private JMenu getMenuBarMenu(JMenuItem item) {
