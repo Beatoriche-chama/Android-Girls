@@ -58,7 +58,6 @@ public class GUI implements ComponentListener {
             new NewAndroid(true);
             new NewAndroid(false);
             new NewAndroid(false);
-
             //new EnergyGenerator(true);
             //add energy to resources List
 
@@ -79,30 +78,45 @@ public class GUI implements ComponentListener {
 
         resources = Arrays.asList(
                 new ResourcesWrapper("energy").setResLabel(energyCount),
-                new ResourcesWrapper("garbage"),
+                new ResourcesWrapper("wires"),
+                new ResourcesWrapper("nuts"),
                 new ResourcesWrapper("cpu"),
                 new ResourcesWrapper("motherboards"),
                 new ResourcesWrapper("flowers")
+                //fuel flowers
+                //metal flowers
+
         );
         data.res = resources;
         resources.get(0).setValue(400);
-        resources.get(1).setValue(40);
-        resources.get(2).setSource("garbage");
-        resources.get(3).setSource("garbage");
+        //resources.get(1).setValue(40);
+        resources.get(3).setSource("wires");
+        resources.get(4).setSource("nuts");
 
         resources.forEach((resource) -> {
             String itemText = resource.getLabelText();
             resource.getResLabel().setText(itemText + data.getResValue(resource.getKey()));
         });
 
+        //каждая работа только хранит
+        //сколько изучено изготовлений
         jobList = Arrays.asList(
                 new JobWrapper("free"),
-                new JobWrapper("garbagers").setWorkerCondition("garbage", 5000, false),
+                new JobWrapper("garbagers")
+                        .setTasks("wires, nuts")
+                        .setWorkerCondition(5000, false)
+                        .setAllTasksActive(),
                 new JobWrapper("mechanics")
-                        .setWorkerCondition(null, 15000, true)
-                .setProducts("motherboards cpu"),
-                new JobWrapper("gardeners").setWorkerCondition("flowers", 5000, false)
+                        .setTasks("motherboards, cpu")
+                        .setWorkerCondition(15000, true),
+                new JobWrapper("gardeners")
+                        .setTasks("flowers")
+                        .setWorkerCondition(5000, false)
+                        .setAllTasksActive()
         );
+
+        jobList.get(2).getCertainTask("motherboards").setPeriod(7000);
+        jobList.get(2).getCertainTask("cpu").setPeriod(1000);
 
         jobList.forEach((jobWrapper) -> {
             String key, textWorker;
@@ -113,16 +127,22 @@ public class GUI implements ComponentListener {
 
             if (!key.equals("free")) {
                 if (jobWrapper.getIsRecyclist()) {
-                    jobWrapper.setTimer(
-                            () -> work.converseItem(jobWrapper.getResourceKey()));
+                    jobWrapper.getTasks().forEach((task) -> {
+                                task.setTimer(() -> work.converseItem(task.getResource()), task.getPeriod());
+                                int taskWorkerCount = data.getWorkersNumber(task.getKey(), true);
+                                if (taskWorkerCount > 0) {
+                                    task.getTimerWrapper().timerStart();
+                                }
+                            }
+                    );
                 } else {
                     jobWrapper.setTimer(
-                            () -> work.giveItem(data.getWorkersNumber(key, false),
-                                    jobWrapper.getResourceKey()));
-                }
-                TimerWrapper timerWrapper = jobWrapper.getTimerWrapper();
-                if (workerCount > 0) {
-                    timerWrapper.timerStart();
+                            () -> work.pickItem(data.getWorkersNumber(key, false),
+                                    jobWrapper.getActiveTasks())
+                    );
+                    if (workerCount > 0) {
+                        jobWrapper.getTimerWrapper().timerStart();
+                    }
                 }
             }
         });
@@ -131,10 +151,16 @@ public class GUI implements ComponentListener {
         helperName.setText(helper.getName());
         helperIconId = helper.getIconId();
 
+
+        //для arraylist генераторов тоже проделать forEach
+        /*
         TimerWrapper energyWrapper = new TimerWrapper(
-                ()-> work.giveItem(- 5 * data.androids.size(),"energy"), 10000);
+                ()-> work.giveItem(- 5 * data.androids.size(),"energy"),
+                10000, true);
         energyWrapper.timerStart();
+         */
     }
+
 
     private void saveData() throws IOException {
         fileManage.objectsSave(androidPath, data.androids);
@@ -272,7 +298,7 @@ public class GUI implements ComponentListener {
             setOpaque(false);
             icon = new JLabel();
             icon.setIcon(new ImageIcon(helper_icon));
-            add(icon, "top, split 2, flowx, grow, gapx 0, wmin 0, hmin 0," + " wmax " + getW(helper_icon) + "," +
+            add(icon, "top, split 2, flowx, grow, gapx 0, wmin 1, hmin 1," + " wmax " + getW(helper_icon) + "," +
                     " hmax " + getH(helper_icon));
             icon.setName("Helper");
             icon.addComponentListener(GUI.this);
@@ -283,17 +309,19 @@ public class GUI implements ComponentListener {
             miniPanel.add(new JButton("Diary"));
             miniPanel.add(new JButton("Pray"));
             add(miniPanel, "top, wrap");
+            //ЗАМЕНИТЬ НА ПАНЕЛЬКУ РЕСУРСОВ
             doll = new JButton();
             doll.setName("Rozen");
             doll.setText("READY TO MAKE ANDROIDS");
             doll.setHorizontalTextPosition(SwingConstants.CENTER);
-            add(doll, "grow, wmin 0, hmin 0, top," + " wmax " + getW(rozen) + "," + " hmax " + getH(rozen));
+            add(doll, "grow, wmin 1, hmin 1, top," + " wmax " + getW(rozen) + "," + " hmax " + getH(rozen));
             doll.addComponentListener(GUI.this);
-
+            //КОНЕЦ ФИКСА
         }
     }
 
     class JobPanel extends JPanel {
+        //переделать в Pip-Girl панель
         JobPanel() {
             new JPanel();
             setOpaque(false);
@@ -304,7 +332,7 @@ public class GUI implements ComponentListener {
                 manage.setEnabled(false);
             });
             add(manage);
-            jobList.forEach((job)-> add(job.getAndroidWorker()));
+            jobList.forEach((job) -> add(job.getAndroidWorker()));
             add(new JButton("Technology Tree"));
         }
 
@@ -353,8 +381,8 @@ public class GUI implements ComponentListener {
             panel.setBackground(Color.WHITE);
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
             resources.stream()
-                    .filter((res)-> !res.getKey().equals("energy"))
-                    .forEach((res)-> {
+                    .filter((res) -> !res.getKey().equals("energy"))
+                    .forEach((res) -> {
                         JLabel label = res.getResLabel();
                         label.setFont(new Font("Serif", Font.BOLD, 16));
                         panel.add(label);
@@ -376,6 +404,7 @@ public class GUI implements ComponentListener {
         return resizedImg;
     }
 
+    //УДАЛИТЬ 
     private String getW(BufferedImage image) {
         return String.valueOf(image.getWidth());
     }
@@ -383,4 +412,33 @@ public class GUI implements ComponentListener {
     private String getH(BufferedImage image) {
         return String.valueOf(image.getHeight());
     }
+
+    /*
+    public void win() {
+        ImageIcon icon = new ImageIcon(getClass().getResource("/goodbye.png"));
+        UIManager.put("OptionPane.okButtonText", "All hail technocracy~");
+        JOptionPane.showConfirmDialog(frame, "Теперь девочка обязательно выживет!", "Спасибо, хозяин",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, icon);
+    }
+
+    public void badEndmessage() throws IOException {
+        System.out.println("Конец игры.");
+        UIManager.put("OptionPane.yesButtonText", "Помочь мечте андроидов сбыться в новой реальности");
+        UIManager.put("OptionPane.noButtonText", "Оставить этот умирающий мир");
+        int result = JOptionPane.showConfirmDialog(null,
+                "Няша, твоя рабыня навеки застыла без энергии." +
+                        " Сейчас ее программное обеспечение связи с параллельным миром отключится.",
+                "Конец реальности", JOptionPane.YES_NO_OPTION);
+        if (result == JOptionPane.YES_OPTION) {
+            restart();
+            startGame();
+        }
+        if (result == JOptionPane.NO_OPTION) {
+            fileManage.deleteDirectory(new File("C:/Users/User/Documents/NyanData"));
+            System.exit(0);
+        }
+    }
+     */
+
+
 }
